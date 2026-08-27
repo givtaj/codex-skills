@@ -9,6 +9,14 @@ WORKFLOW = ROOT / ".github" / "workflows" / "validate.yml"
 
 
 class ValidationWorkflowTests(unittest.TestCase):
+    def test_checks_out_contribution_head_instead_of_synthetic_merge(self) -> None:
+        workflow = WORKFLOW.read_text(encoding="utf-8")
+
+        self.assertIn(
+            "ref: ${{ github.event.pull_request.head.sha || github.sha }}",
+            workflow,
+        )
+
     def test_fetches_all_published_refs_without_platform_pull_refs(self) -> None:
         workflow = WORKFLOW.read_text(encoding="utf-8")
 

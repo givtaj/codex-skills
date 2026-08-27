@@ -2,7 +2,7 @@
 
 Inventory every level from 0 through 5 during setup and audit. Level 0 is mandatory. Higher levels are not a score and are never installed automatically: reuse what exists, recommend only useful gaps, and ask the user before changing anything.
 
-During setup, use this map as an internal checklist, not a menu. After the repository-instruction safety precheck, inspect the local remote and repository metadata first. Discover linked Projects separately so missing Project scope does not erase the local or repository result. Ask only the unresolved management decisions that matter to the user's requested outcome.
+During setup, use this map as an internal checklist, not a menu. After the repository-instruction safety precheck, resolve and preview one explicit GitHub host and repository identity. Inspect repository metadata first and explicitly linked Projects separately so missing Project scope does not erase the local or repository result. A zero-link result is not evidence that no Project authority exists: inspect accessible candidates and ask about unlinked or cross-organization authority before proposing creation. Ask only the unresolved management decisions that matter to the user's requested outcome.
 
 Keep the discovery result in ephemeral task state as: `level`, `surface`, `detected authority`, `gap`, `recommendation`, and `user decision`. Show a concise summary, but do not save raw discovery or GitHub output.
 
@@ -28,10 +28,10 @@ Keep the discovery result in ephemeral task state as: `level`, `surface`, `detec
 ## Level 0 — Discover safely
 
 - **Repository instructions:** inspect applicable `AGENTS.md`, `README.md`, `CONTRIBUTING.md`, and linked guidance from the repository root toward the working directory. Preserve nested precedence.
-- **Git remote:** inspect configured remotes locally, derive the host, then use `gh repo view` when compatible GitHub access is available. Keep selected identifiers in ephemeral state unless the target repository deliberately records them.
+- **Git remote:** inspect configured remotes locally, select one when several are plausible, derive its host and explicit `[HOST/]OWNER/REPO` identity, then preview and pass that target to GitHub operations. Keep selected identifiers in ephemeral state unless the target repository deliberately records them.
 - **Safe GitHub authentication:** follow `safety.md`; use status only as a non-disclosing capability check. Never request, display, or dump a token.
 - **Existing tools/files:** inventory manifests, task runners, `Makefile`, `.github/`, `scripts/`, `docs/`, repository configuration, and existing management commands before proposing anything.
-- **Default branch:** discover it with a narrow `gh repo view --json defaultBranchRef` query or the remote HEAD. Never assume the branch is named `main`.
+- **Default branch:** discover it with an explicitly targeted, narrow repository-metadata query following `github-projects.md`, or use the remote HEAD. Never assume the branch is named `main`.
 - **Secrets rules:** inspect safety instructions, `.gitignore`, `SECURITY.md`, secret-scanner configuration, and documented sensitive paths. Never open secret values, `.env` files, key material, or credential stores.
 
 ## Level 1 — Project memory
@@ -45,9 +45,9 @@ Keep the discovery result in ephemeral task state as: `level`, `surface`, `detec
 
 ## Level 2 — Collaboration
 
-- **GitHub Projects:** discover repository-linked Projects at runtime when access is available. Reuse one, suggest creation for none, and ask for selection when several are linked.
-- **Issues:** inspect issue conventions, open/closed work, required fields, and whether issues are the scope authority. Search before creating duplicates.
-- **PRs:** inspect pull-request conventions, review expectations, merge evidence, and integration rules.
+- **GitHub Projects:** discover explicitly linked Projects at runtime when access is available. Reuse a compatible authority, inspect and ask about unlinked or cross-organization authority when none is linked, and ask for selection when several candidates remain. Suggest creation only after existing authority has been ruled out.
+- **Issues:** inspect issue conventions, open and closed work, required fields, and whether issues are the scope authority. Use the explicit repository identity and adequate pagination or limits before concluding that no duplicate exists.
+- **PRs:** inspect pull-request conventions, review expectations, merge evidence, and integration rules using the explicit repository identity and adequate pagination or limits for any enumeration.
 - **Templates:** inspect `.github/ISSUE_TEMPLATE/`, pull-request templates, contribution forms, and repository-specific generators before offering bundled templates.
 - **Labels:** inspect labels and their meanings with narrow `gh` queries. Reuse the existing taxonomy; never create a competing set silently.
 - **Milestones:** inspect open milestones and their purpose. Use them only when the repository already plans releases or objectives that way.
@@ -62,7 +62,7 @@ Keep the discovery result in ephemeral task state as: `level`, `surface`, `detec
 - **Linting:** find established linters and their configuration. Reuse the repository's command and scope.
 - **Formatting:** find formatter configuration and check/fix commands. Keep automated formatting separate from semantic changes.
 - **Hooks:** inspect established pre-commit, package-manager, task-runner, tracked Git-hook, and assistant-host hook configuration. Never modify untracked `.git/hooks` or add a hook framework silently.
-- **Required checks:** inspect rulesets, branch protection, required status checks, and merge queues through narrow read-only GitHub queries. Confirm before changing enforcement.
+- **Required checks:** inspect rulesets, branch protection, required status checks, and merge queues through narrow, explicitly targeted, read-only GitHub queries. Use adequate pagination or limits for any enumeration. Confirm before changing enforcement.
 - **Dependency management:** inspect manifests, lockfiles, Dependabot/Renovate configuration, update policy, and dependency review.
 - **Security management:** inspect code/secret scanning, security workflows, advisories policy, dependency checks, and `SECURITY.md`. Never read secrets to prove they are protected.
 - **Maintenance automation:** inspect scheduled workflows, bots, stale-item handling, cleanup jobs, generated-file updates, and recurring repository maintenance.
@@ -99,6 +99,16 @@ Keep the discovery result in ephemeral task state as: `level`, `surface`, `detec
 - Architecture and policy records preserve durable decisions; they do not become another backlog.
 
 ## Bundled starting points
+
+When the core configuration is selected, use this version-1 contract:
+
+- `schema_version`: exactly `1`.
+- `repository`: exactly `self`, meaning the containing repository must still be resolved to an explicit runtime GitHub identity.
+- `project_authority`: `discover` or `disabled`. `discover` requires authority discovery; it does not assert that a Project is linked or selected.
+- `surfaces`: a comma-separated, duplicate-free subset of `core,intent,tasks,outcomes,planning,status,issues,projects,review,ci`; `core` is required.
+- `strictness`: `advisory`, `standard`, or `strict`, selected to match existing enforcement rather than assumed.
+
+Reject missing, duplicate, unknown, or placeholder values before installing the configuration or its audit workflow. Do not add lifecycle, changelog, or integration fields merely because their surfaces are available; include them only when the repository selected the corresponding authority or policy.
 
 | Desired outcome | Starting point |
 | --- | --- |

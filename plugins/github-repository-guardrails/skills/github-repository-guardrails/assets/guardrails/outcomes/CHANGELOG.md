@@ -1,6 +1,6 @@
 # Changelog
 
-Record user-visible outcomes, not implementation transcripts.
+Use this file only when the repository selects it as the outcome-history authority. Record user-visible outcomes, not implementation transcripts, and adapt headings to the repository's release convention.
 
 ## Unreleased
 

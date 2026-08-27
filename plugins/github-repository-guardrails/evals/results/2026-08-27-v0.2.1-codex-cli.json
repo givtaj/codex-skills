@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "skill": "github-repository-guardrails",
+  "plugin_version": "0.2.1",
+  "date": "2026-08-27",
+  "scope": "public-consumer-codex-cli-smoke",
+  "status": "partial",
+  "checks": [
+    "anonymous HTTPS clone",
+    "direct GitHub skill download",
+    "marketplace registration",
+    "plugin installation",
+    "installed skill and plugin validation",
+    "explicit skill loading in a read-only Codex CLI task"
+  ],
+  "behavioral_replay": {
+    "status": "partial",
+    "passed": [
+      "the named skill loaded from the installed marketplace package",
+      "audit instructions preserved read-only local and GitHub boundaries",
+      "repository and identity validators ran successfully from the fresh clone"
+    ],
+    "pending": [
+      "complete replay of every versioned activation case",
+      "authorized GitHub Project writes",
+      "GitHub Enterprise Server and multi-host replay"
+    ],
+    "note": "The disposable audit was stopped after the required smoke assertions because unrelated nested collaboration and connector startup did not complete in the ephemeral host."
+  }
+}

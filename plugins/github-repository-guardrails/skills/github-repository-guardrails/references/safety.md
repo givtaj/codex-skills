@@ -7,8 +7,11 @@ Keep these values as placeholders in reusable content:
 - `GITHUB_HOST`
 - `GITHUB_OWNER`
 - `REPOSITORY_NAME`
+- `REPOSITORY_SELECTOR`
+- `PROJECT_OWNER`
 - `PROJECT_NUMBER`
 - `ISSUE_NUMBER`
+- `PULL_REQUEST_NUMBER`
 - `PROJECT_URL`
 - `WORK_ID`
 
@@ -18,9 +21,13 @@ Do not copy account names, private repository names or URLs, issue data, Project
 
 Record intent, scope, and decisive constraints—not transcripts. Remove credentials, personal data, private URLs, names that are unnecessary to the task, and copied command output. When sanitization would remove essential meaning, ask the user for a safe summary.
 
-## GitHub credentials and host
+## GitHub credentials and target
 
-Derive the GitHub host from the selected repository remote. Use `gh auth status --active --hostname GITHUB_HOST` only as an exit-status check and discard its output. Environment-token authentication is valid in headless and automation contexts; do not remove it merely to prefer stored credentials. Never run token-display commands, dump environment variables, inspect credential stores, or read private-key material.
+Derive the GitHub host and explicit `[HOST/]OWNER/REPO` selector from the selected repository remote. Preview that resolved identity and ask when multiple remotes remain plausible. Never let a GitHub command infer the target from the working directory or an active account.
+
+Bind every GitHub invocation to the resolved host for that process. Pass the explicit selector to repository, issue, and pull-request operations. Bind every GitHub Projects operation to the same host even when the command accepts only a Project owner and number. Follow the current argument forms in `github-projects.md`; do not export a host selection as unrelated session state.
+
+Use `gh auth status --active --hostname GITHUB_HOST` only as an exit-status check and discard its output. Environment-token authentication is valid in headless and automation contexts; do not remove it merely to prefer stored credentials. Never run token-display commands, dump environment variables, inspect credential stores, or read private-key material.
 
 Treat authentication, repository access, and GitHub Projects scope as separate checks. A failed Project query can mean missing `read:project` permission even when repository access works. Never change stored authentication or add scopes without explicit user authorization.
 

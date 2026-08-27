@@ -28,7 +28,7 @@ Start a new task after installation so the new skill is loaded. Invoke a skill e
 | Plugin | Category | Maturity | What it does |
 | --- | --- | --- | --- |
 | [`status-review-dashboard`](./plugins/status-review-dashboard/) | Productivity · Project operations | Public preview `0.1.0` | Creates compact, evidence-based status-review dashboards. Results are interactive when the host supports that capability and preserve the same hierarchy in Markdown otherwise. |
-| [`github-repository-guardrails`](./plugins/github-repository-guardrails/) | Developer tools · Project operations | Public preview `0.2.0` | Establishes, maintains, and audits repository-management authorities with optional GitHub issue and Project traceability. |
+| [`github-repository-guardrails`](./plugins/github-repository-guardrails/) | Developer tools · Project operations | Public preview `0.2.1` | Establishes, maintains, and audits repository-management authorities with optional GitHub issue and Project traceability. |
 
 The marketplace category is the install-surface category. The catalog may cross-list a plugin under other relevant domains without duplicating its files.
 
@@ -67,8 +67,18 @@ plugins/<plugin>/
 2. Package an independent workflow as its own plugin under `plugins/<plugin-name>/`.
 3. Add a labelled direct, indirect, incomplete, follow-up, boundary, negative, and edge request set under `plugins/<plugin-name>/evals/`.
 4. Add one marketplace entry using `./plugins/<plugin-name>` as its source path and update the category catalog and changelog.
-5. Run `python3 scripts/validate_repo.py` plus the current Codex skill and plugin validators.
+5. Run the repository tests and validators plus the current Codex skill and plugin validators.
 6. Install from a local marketplace and replay the golden request set before promoting a preview to stable.
+
+## Verify a checkout
+
+```bash
+python3 -m unittest discover -s tests -v
+python3 scripts/validate_repo.py
+python3 scripts/validate_public_git_identity.py
+```
+
+The public repository also uses GitHub secret scanning and push protection. Local and CI checks remain required because platform scanning is a defense in depth, not a substitute for review.
 
 ## Quality model
 

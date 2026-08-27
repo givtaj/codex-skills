@@ -1,6 +1,6 @@
 {
   "name": "github-repository-guardrails",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Set up, maintain, and audit repository-management guardrails that coordinate local project records with GitHub issues and Projects when selected.",
   "author": {
     "name": "givtaj",

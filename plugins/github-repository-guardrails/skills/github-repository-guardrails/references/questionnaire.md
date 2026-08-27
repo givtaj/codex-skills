@@ -4,7 +4,7 @@ Use this reference as reasoning guidance, not as a form. Inspect the repository,
 
 ## Establish available authorities
 
-Start with local repository instructions, existing management surfaces, and the configured remote. Run repository and linked-Project discovery as separate read operations following `github-projects.md`.
+Start with local repository instructions, existing management surfaces, and configured remotes. Resolve and preview one explicit GitHub host and repository identity, then run repository and linked-Project discovery as separate, explicitly targeted read operations following `github-projects.md`.
 
 Adapt to the result:
 
@@ -12,10 +12,10 @@ Adapt to the result:
 - Repository access unavailable: offer one scoped retry when appropriate, otherwise continue locally.
 - Projects access unavailable: distinguish the missing Project permission from repository access; offer to skip or request authorization.
 - One compatible linked Project: propose reusing it.
-- No compatible linked Project: offer a creation-and-linking preview.
+- No compatible linked Project: record only that no explicit link was found. Inspect repository evidence and accessible owner Projects with adequate explicit limits, then ask whether an unlinked or cross-organization Project is authoritative.
 - Several compatible linked Projects: ask the user to select one.
 
-Do not perform a GitHub write during discovery. Missing or declined GitHub integration must not block useful local guardrails.
+Do not perform a GitHub write during discovery. Offer creation only after no compatible existing Project authority remains. Missing or declined GitHub integration must not block useful local guardrails.
 
 ## Ask only unresolved management decisions
 
@@ -28,6 +28,8 @@ Determine whether sanitized intent needs a durable record at all. Prefer an exis
 ### Work tracking
 
 Identify one authority for active scope and state: an existing local system, GitHub issues and Projects, or an explicitly synchronized summary. Preserve the repository's identifier convention and avoid duplicate state.
+
+Treat lifecycle fields as conditional. Include state, completion, or transition fields only when the selected authority defines them.
 
 ### Outcome history
 
@@ -45,6 +47,8 @@ Reuse existing plans, roadmaps, milestones, or objectives. Add a small plan only
 
 Reuse contribution, pull-request, integration, and definition-of-done guidance. Offer a template only when the repository uses that workflow and has a demonstrated gap.
 
+Keep changelog and integration fields out of task and review templates unless the repository selects those authorities or policies.
+
 ## Inspect remaining mapper levels
 
 Use `guardrail-mapper.md` to inspect collaboration, quality automation, delivery, operations, and governance. Skip questions answered by evidence and mark irrelevant levels as not applicable.
@@ -56,4 +60,4 @@ Use `guardrail-mapper.md` to inspect collaboration, quality automation, delivery
 
 ## Translate decisions into changes
 
-Build a minimal change set with one authority per surface. Compare proposed templates with existing files using available filesystem capabilities. Preview local changes and GitHub actions separately, apply only authorized non-conflicting changes, and validate the resulting authorities agree.
+Build a minimal change set with one authority per surface. Compare proposed templates with existing files using available filesystem capabilities. When the generic configuration is selected, use only the documented values in `guardrail-mapper.md` and validate it before installation. Preview local changes and GitHub actions separately, apply only authorized non-conflicting changes, and validate the resulting authorities agree.

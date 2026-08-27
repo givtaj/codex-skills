@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "skill": "github-repository-guardrails",
+  "plugin_version": "0.2.1",
+  "date": "2026-08-27",
+  "scope": "structural-and-regression",
+  "status": "passed",
+  "checks": [
+    "22 deterministic validator regression tests",
+    "full-history public-content and credential scan",
+    "all-ref public Git identity validation",
+    "repository marketplace validation",
+    "current installed OpenAI skill validation",
+    "current installed OpenAI plugin validation",
+    "Python compilation and diff hygiene",
+    "bundled configuration and audit workflow fixtures"
+  ],
+  "behavioral_replay": {
+    "status": "partial",
+    "result": "2026-08-27-v0.2.1-codex-cli.json"
+  }
+}

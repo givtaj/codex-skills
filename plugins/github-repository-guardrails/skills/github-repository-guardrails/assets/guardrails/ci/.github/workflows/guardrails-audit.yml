@@ -20,3 +20,73 @@ jobs:
           test -f .github/repository-guardrails.conf
           test "$(grep -Fc '<!-- github-repository-guardrails:start -->' AGENTS.md)" -eq 1
           test "$(grep -Fc '<!-- github-repository-guardrails:end -->' AGENTS.md)" -eq 1
+
+          config=.github/repository-guardrails.conf
+
+          read_config() {
+            local key="$1"
+            local matches
+            local count
+            matches="$(grep -E "^${key}=" "$config" || true)"
+            count="$(printf '%s\n' "$matches" | sed '/^$/d' | wc -l | tr -d '[:space:]')"
+            if [[ "$count" != 1 ]]; then
+              echo "Expected exactly one ${key} entry in ${config}" >&2
+              exit 1
+            fi
+            printf '%s' "${matches#*=}"
+          }
+
+          unknown_keys="$({ sed -e '/^[[:space:]]*#/d' -e '/^[[:space:]]*$/d' "$config" || true; } | cut -d= -f1 | sort -u | grep -Ev '^(schema_version|repository|project_authority|surfaces|strictness)$' || true)"
+          if [[ -n "$unknown_keys" ]]; then
+            echo "Unknown repository guardrail configuration key" >&2
+            exit 1
+          fi
+
+          schema_version="$(read_config schema_version)"
+          repository="$(read_config repository)"
+          project_authority="$(read_config project_authority)"
+          surfaces="$(read_config surfaces)"
+          strictness="$(read_config strictness)"
+
+          if [[ "$schema_version" != 1 || "$repository" != self ]]; then
+            echo "Unsupported repository guardrail configuration version or repository selector" >&2
+            exit 1
+          fi
+          case "$project_authority" in
+            discover|disabled) ;;
+            *)
+              echo "Unsupported Project authority mode" >&2
+              exit 1
+              ;;
+          esac
+          case "$strictness" in
+            advisory|standard|strict) ;;
+            *)
+              echo "Unsupported repository guardrail strictness" >&2
+              exit 1
+              ;;
+          esac
+
+          IFS=',' read -r -a selected_surfaces <<< "$surfaces"
+          [[ "${#selected_surfaces[@]}" -gt 0 ]]
+          seen=,
+          has_core=0
+          for surface in "${selected_surfaces[@]}"; do
+            case "$surface" in
+              core|intent|tasks|outcomes|planning|status|issues|projects|review|ci) ;;
+              *)
+                echo "Unknown repository guardrail surface" >&2
+                exit 1
+                ;;
+            esac
+            if [[ "$seen" == *",${surface},"* ]]; then
+              echo "Duplicate repository guardrail surface" >&2
+              exit 1
+            fi
+            seen="${seen}${surface},"
+            [[ "$surface" == core ]] && has_core=1
+          done
+          if [[ "$has_core" != 1 ]]; then
+            echo "The core repository guardrail surface is required" >&2
+            exit 1
+          fi

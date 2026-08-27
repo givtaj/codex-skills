@@ -79,11 +79,12 @@ Record expected activation and observable behavior. Change one metadata field at
 Run from the repository root:
 
 ```bash
+python3 -m unittest discover -s tests -v
 python3 scripts/validate_repo.py
 python3 scripts/validate_public_git_identity.py
 ```
 
-During authoring, also run the current validators supplied by the Codex skill and plugin creators. Finally, install from a local marketplace and replay the golden request set in a new conversation before promoting a preview to stable.
+The public-content and default identity checks require complete local history and tags; unshallow the clone before treating them as publication evidence. Pull-request CI validates the contribution range separately from GitHub's synthetic merge commit. During authoring, also run the current validators supplied by the Codex skill and plugin creators. Finally, install from a local marketplace and replay the golden request set in a new conversation before promoting a preview to stable.
 
 ## Current references
 

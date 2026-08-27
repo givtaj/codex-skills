@@ -8,6 +8,20 @@ All notable changes to published plugins are recorded here. Versions follow sema
 
 - Repository-wide canonical naming, durable-language, public-safety, and golden-request import gates.
 
+## github-repository-guardrails 0.2.1 - 2026-08-27
+
+### Fixed
+
+- Bound GitHub Project operations to the resolved host and repository instead of relying on ambient CLI defaults.
+- Distinguished an unlinked Project from the absence of an existing Project authority and required complete, explicitly limited discovery before duplicate-sensitive actions.
+- Made bundled configuration and lifecycle templates validate their selected options without imposing changelog or integration conventions.
+- Hardened public-content validation across Git history, filenames, binary payloads, Git metadata, and additional high-signal credential formats.
+- Accepted GitHub system and bot noreply identities while validating contribution commits instead of synthetic pull-request merge identities.
+
+### Validated
+
+- Repeated anonymous HTTPS clone, direct skill download, marketplace registration, plugin installation, installed-package validation, and explicit read-only Codex CLI activation from the published repository.
+
 ## github-repository-guardrails 0.2.0 - 2026-08-27
 
 ### Added

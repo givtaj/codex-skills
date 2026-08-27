@@ -1,19 +1,19 @@
 ## Outcome
 
-Describe the user or project outcome and link the work issue.
+Describe the user or project outcome. Reference the selected work authority only when enabled.
 
-## Guardrail updates
+## Selected guardrail updates
 
-- [ ] Task record is current.
-- [ ] Prompt root is sanitized.
-- [ ] Changelog updated or a not-needed reason is recorded.
-- [ ] Project, issue, and local task state agree where synchronized.
+<!-- Keep only checks for surfaces selected by this repository; remove this section when none apply. -->
+<!-- Examples: selected task record current; sanitized intent record current; synchronized authorities agree. -->
+<!-- Add an outcome or changelog check only when that record is selected. -->
 
 ## Verification
 
 List the checks run and their results.
 
+<!-- Include this section only when the repository has a selected integration policy.
 ## Integration
 
-- [ ] Ready for review.
-- [ ] Marked Done only after default-branch integration.
+Describe the required integration evidence without inventing a lifecycle state.
+-->

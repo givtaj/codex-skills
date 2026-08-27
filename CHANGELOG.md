@@ -8,7 +8,7 @@ All notable changes to published plugins are recorded here. Versions follow sema
 
 - Repository-wide canonical naming, durable-language, public-safety, and golden-request import gates.
 
-## github-repository-guardrails 0.2.1 - Unreleased
+## github-repository-guardrails 0.2.1 - 2026-08-27
 
 ### Fixed
 
@@ -20,9 +20,9 @@ All notable changes to published plugins are recorded here. Versions follow sema
 
 ### Validation status
 
-- Local pre-release structural, regression, privacy, and packaging checks passed for the `0.2.1` candidate.
-- Public-path clone, direct-download, marketplace-registration, installation, installed-package validation, and read-only Codex CLI smoke evidence applies to the published `0.2.0` artifact at commit `fb8b483c11a9ec028f4de57f03eb2b294b79580c`; it does not verify `0.2.1`.
-- Public clone/install/load verification of an immutable `0.2.1` candidate remains pending.
+- Local structural, regression, privacy, packaging, and independent review checks passed for `0.2.1`.
+- Anonymous HTTPS clone, direct skill download, Git marketplace registration, plugin installation, installed-package validation, and explicit read-only Codex CLI activation passed against immutable candidate `github-repository-guardrails-v0.2.1-rc.1` at commit `db6c8db9e004806664c264e62a2774885068c045`.
+- The candidate's [GitHub Actions validation](https://github.com/givtaj/codex-skills/actions/runs/33082734696) passed. Full replay of every golden request across supported hosts remains pending.
 
 ## github-repository-guardrails 0.2.0 - 2026-08-27
 

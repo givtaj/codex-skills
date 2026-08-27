@@ -3,15 +3,15 @@
   "skill": "github-repository-guardrails",
   "plugin_version": "0.2.1",
   "date": "2026-08-27",
-  "scope": "local-pre-release-structural-and-regression",
+  "scope": "public-release-candidate-structural-and-regression",
   "status": "passed",
   "tested_artifact": {
-    "release_state": "local-pre-release",
+    "release_state": "public-release-candidate",
     "plugin_version": "0.2.1",
-    "candidate_ref": null,
-    "commit_sha": null,
-    "repository_url": null,
-    "note": "Checks ran against the local candidate before an immutable public candidate was recorded."
+    "candidate_ref": "github-repository-guardrails-v0.2.1-rc.1",
+    "commit_sha": "db6c8db9e004806664c264e62a2774885068c045",
+    "repository_url": "https://github.com/givtaj/codex-skills",
+    "note": "Checks passed locally and from an anonymous clone of the immutable public candidate."
   },
   "checks": [
     "32 deterministic validator and workflow regression tests",
@@ -28,11 +28,12 @@
     "result": "2026-08-27-v0.2.1-codex-cli.json"
   },
   "public_candidate_verification": {
-    "status": "pending",
-    "candidate_ref": null,
-    "commit_sha": null,
-    "repository_url": null,
-    "codex_cli_version": null,
-    "note": "Populate these fields only after testing an immutable public 0.2.1 candidate."
+    "status": "passed",
+    "candidate_ref": "github-repository-guardrails-v0.2.1-rc.1",
+    "commit_sha": "db6c8db9e004806664c264e62a2774885068c045",
+    "repository_url": "https://github.com/givtaj/codex-skills",
+    "codex_cli_version": "0.150.0-alpha.8",
+    "github_actions_run_url": "https://github.com/givtaj/codex-skills/actions/runs/33082734696",
+    "note": "The immutable public candidate passed its clone, validation, install, and activation release gate."
   }
 }

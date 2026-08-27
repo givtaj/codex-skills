@@ -3,9 +3,9 @@
   "skill": "github-repository-guardrails",
   "plugin_version": "0.2.1",
   "date": "2026-08-27",
-  "scope": "published-v0.2.0-path-baseline",
+  "scope": "published-v0.2.0-baseline-and-v0.2.1-candidate-smoke",
   "status": "partial",
-  "result_context": "Recorded during 0.2.1 preparation; this result does not verify a public 0.2.1 artifact.",
+  "result_context": "Preserves the published 0.2.0 baseline and separately records the public 0.2.1 release-candidate smoke.",
   "tested_artifact": {
     "release_state": "published",
     "plugin_version": "0.2.0",
@@ -38,19 +38,23 @@
     "note": "The disposable 0.2.0 baseline audit was stopped after the required smoke assertions because unrelated nested collaboration and connector startup did not complete in the ephemeral host."
   },
   "public_candidate_verification": {
-    "status": "pending",
+    "status": "passed",
     "plugin_version": "0.2.1",
-    "candidate_ref": null,
-    "commit_sha": null,
-    "repository_url": null,
-    "codex_cli_version": null,
-    "required_checks": [
-      "anonymous HTTPS clone of the immutable candidate",
-      "marketplace registration from the candidate repository",
-      "plugin installation from the candidate repository",
-      "installed-package validation",
-      "explicit read-only Codex CLI activation"
+    "candidate_ref": "github-repository-guardrails-v0.2.1-rc.1",
+    "commit_sha": "db6c8db9e004806664c264e62a2774885068c045",
+    "repository_url": "https://github.com/givtaj/codex-skills",
+    "codex_cli_version": "0.150.0-alpha.8",
+    "github_actions_run_url": "https://github.com/givtaj/codex-skills/actions/runs/33082734696",
+    "passed_checks": [
+      "anonymous full-history HTTPS clone of the immutable candidate",
+      "32 validator and workflow regression tests from the fresh clone",
+      "repository, Git identity, installed OpenAI skill, and installed OpenAI plugin validation",
+      "direct GitHub archive skill download at the candidate ref",
+      "Git marketplace registration at the candidate ref",
+      "version 0.2.1 plugin installation from the candidate marketplace snapshot",
+      "explicit ephemeral read-only Codex CLI activation returned SKILL_LOAD_OK",
+      "GitHub Actions validation of the candidate tag"
     ],
-    "note": "No published 0.2.1 candidate has been tested; populate the coordinates and results only after that run."
+    "note": "The activation smoke used the exact candidate plugin bytes through a temporary uniquely named local marketplace copy so the already installed 0.2.0 skill could not shadow the candidate. The original installed plugin state was restored after the run."
   }
 }

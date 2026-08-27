@@ -51,3 +51,17 @@ All notable changes to published plugins are recorded here. Versions follow sema
 ### Changed
 
 - Renamed the pre-release draft from `compact-dashboard-review` to `status-review-dashboard` before first publication to remove grammatical ambiguity.
+
+## central-projects-tracking 0.1.0 - 2026-08-27
+
+### Added
+
+- Initial public preview for central portfolio tracking across an explicitly approved local projects directory.
+- Bounded read-only Git collection, exact evidence-map allowlisting, verified evidence rereads, validated previous-snapshot continuity, private facts, and source/content digests.
+- A deterministic offline website builder with Brief, Portfolio, Activity, and System views; search and filters; accessible project drawers; copy actions; privacy-safe Git change plans; responsive styling; and a digest-bound site manifest.
+- Reusable site-creation instructions and a copy-ready creation prompt.
+- Activation requests covering direct, indirect, incomplete, follow-up, website-creation, boundary, negative, and adversarial edge cases.
+
+### Security
+
+- Scanned repositories remain read-only; the workflow never fetches, executes project code, publishes, deploys, schedules, or exposes raw paths, dirty filenames, Git identities, object ids, logs, or evidence contents.

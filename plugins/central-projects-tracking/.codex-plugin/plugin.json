@@ -1,0 +1,41 @@
+{
+  "name": "central-projects-tracking",
+  "version": "0.1.0",
+  "description": "Create a validated project-portfolio snapshot and complete private local tracking website from approved repositories and evidence.",
+  "author": {
+    "name": "givtaj",
+    "url": "https://github.com/givtaj"
+  },
+  "homepage": "https://github.com/givtaj/codex-skills/tree/main/plugins/central-projects-tracking",
+  "repository": "https://github.com/givtaj/codex-skills",
+  "license": "MIT",
+  "keywords": [
+    "central-projects",
+    "multi-repository",
+    "portfolio",
+    "snapshot",
+    "tracking"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Central Projects Tracking",
+    "shortDescription": "Build a safe central project tracking website",
+    "longDescription": "Inspect an explicitly approved local projects directory without mutating its repositories, combine bounded Git facts with allowlisted evidence, finalize a validated schema-v2 portfolio snapshot, and build a complete private local website with Brief, Portfolio, Activity, System, search, filters, accessible details, and Git change plans. Publishing, deployment, scheduling, and repository mutation remain separate.",
+    "developerName": "givtaj",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write",
+      "Interactive"
+    ],
+    "websiteURL": "https://github.com/givtaj/codex-skills/tree/main/plugins/central-projects-tracking",
+    "privacyPolicyURL": "https://github.com/givtaj/codex-skills/blob/main/PRIVACY.md",
+    "defaultPrompt": [
+      "Create a complete local Central Projects Tracking website for my approved portfolio.",
+      "Which local projects need attention, what evidence supports that, and what should happen next?",
+      "Refresh my validated project snapshot and rebuild the private local tracking site."
+    ],
+    "brandColor": "#2F80ED",
+    "screenshots": []
+  }
+}

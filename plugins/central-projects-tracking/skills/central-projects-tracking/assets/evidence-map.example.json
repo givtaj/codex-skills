@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "limits": {
+    "maxFileBytes": 131072,
+    "maxProjectBytes": 524288
+  },
+  "default": [
+    {
+      "id": "project-status",
+      "path": "PROJECT_STATUS.md",
+      "required": false
+    },
+    {
+      "id": "project-plan",
+      "path": "PLAN.md",
+      "required": false
+    },
+    {
+      "id": "project-changelog",
+      "path": "CHANGELOG.md",
+      "required": false
+    }
+  ],
+  "projects": {}
+}

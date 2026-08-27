@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "skill": "central-projects-tracking",
+  "plugin_version": "0.1.0",
+  "date": "2026-08-27",
+  "scope": "structural",
+  "status": "passed",
+  "checks": [
+    "repository marketplace validation",
+    "skill structure validation",
+    "plugin manifest and packaged-skill validation",
+    "collector, evidence-verification, and schema-v2 snapshot synthetic tests",
+    "offline website builder, manifest, template, and JavaScript syntax tests",
+    "public-content privacy and secret scan"
+  ],
+  "behavioral_replay": {
+    "status": "pending",
+    "reason": "The initial public preview has not yet been replayed across every supported host surface."
+  }
+}

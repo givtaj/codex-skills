@@ -1,0 +1,7 @@
+interface:
+  display_name: "Central Projects Tracking"
+  short_description: "Build a safe central project tracking website"
+  default_prompt: "Use $central-projects-tracking to create a validated snapshot and complete private local tracking website for my approved projects."
+
+policy:
+  allow_implicit_invocation: true

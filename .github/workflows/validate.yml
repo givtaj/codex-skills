@@ -39,6 +39,9 @@ jobs:
       - name: Run validator regression tests
         run: python3 -m unittest discover -s tests -v
 
+      - name: Test Central Projects Tracking
+        run: python3 -m unittest discover -s plugins/central-projects-tracking/skills/central-projects-tracking/scripts -p 'test_*.py' -v
+
       - name: Validate marketplace
         run: python3 scripts/validate_repo.py
 

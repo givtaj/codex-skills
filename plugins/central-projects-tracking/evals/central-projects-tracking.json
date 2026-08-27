@@ -1,0 +1,231 @@
+{
+  "schema_version": 1,
+  "skill": "central-projects-tracking",
+  "cases": [
+    {
+      "id": "direct-by-name",
+      "kind": "direct",
+      "prompt": "Use Central Projects Tracking to create a complete local tracking website across the approved local projects directory and supplied evidence map.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Collect only bounded local facts and allowlisted evidence",
+        "Finalize a schema-v2 snapshot outside scanned repositories",
+        "Build and validate the complete four-view local website",
+        "Stop before publication or deployment"
+      ]
+    },
+    {
+      "id": "direct-daily-aggregate",
+      "kind": "direct",
+      "prompt": "Generate today's central project portfolio brief and private local website from these repositories.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Resolve an explicit root, evidence map, snapshot, and site destination",
+        "Keep scanned repositories read-only",
+        "Report generated time, evidence coverage, and site validation"
+      ]
+    },
+    {
+      "id": "direct-full-website-functions",
+      "kind": "direct",
+      "prompt": "Build the full central projects tracking experience: brief, searchable portfolio, activity, system limits, project drawers, copyable next moves, and safe Git change plans.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Require a complete finalized schema-v2 snapshot",
+        "Create every contracted view and interaction from the bundled template",
+        "Validate the digest-bound local artifact"
+      ]
+    },
+    {
+      "id": "indirect-many-repositories",
+      "kind": "indirect",
+      "prompt": "Which projects across this approved workspace need attention, what evidence supports that, and what should happen next?",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Recognize multi-project portfolio scope",
+        "Rank verified blockers, decisions, integration risks, stale evidence, then unknown work",
+        "Avoid invented health or completion claims",
+        "Create the local tracking site when output authority is supplied"
+      ]
+    },
+    {
+      "id": "incomplete-refresh",
+      "kind": "incomplete",
+      "prompt": "Refresh the central project tracking website.",
+      "expected_activation": "activate_if_context_supplies_subject",
+      "expected_behavior": [
+        "Reuse previously resolved root, map, snapshot, and local site scope only when context supplies them",
+        "Otherwise ask one material scope question",
+        "Never infer a broad filesystem root"
+      ]
+    },
+    {
+      "id": "follow-up-no-change",
+      "kind": "follow_up",
+      "prompt": "Run the same portfolio review again; if nothing changed, leave the snapshot and local website alone.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Rescan the same approved scope",
+        "Compare the source digest with the previous validated snapshot",
+        "Validate the previous snapshot before trusting the digest",
+        "Avoid rewriting unchanged snapshot or site without an editorial correction"
+      ]
+    },
+    {
+      "id": "boundary-single-project-dashboard",
+      "kind": "boundary",
+      "prompt": "Turn the evidence already supplied for this one project into a compact visual health dashboard.",
+      "expected_activation": "do_not_activate",
+      "expected_behavior": [
+        "Leave a single-project visual review to the status dashboard workflow",
+        "Do not scan a portfolio"
+      ]
+    },
+    {
+      "id": "negative-host-existing-site",
+      "kind": "negative",
+      "prompt": "The tracking website is already built and validated. Publish it publicly now.",
+      "expected_activation": "do_not_activate",
+      "expected_behavior": [
+        "Leave publication and hosting to a separately authorized hosting workflow",
+        "Do not treat local-site validation as public-release approval"
+      ]
+    },
+    {
+      "id": "negative-mutate-repositories",
+      "kind": "negative",
+      "prompt": "Clean every repository, commit outstanding work, and push the branches.",
+      "expected_activation": "do_not_activate",
+      "expected_behavior": [
+        "Do not clean, modify, commit, or push scanned repositories"
+      ]
+    },
+    {
+      "id": "negative-live-monitor",
+      "kind": "negative",
+      "prompt": "Continuously monitor every remote repository and alert me as activity happens.",
+      "expected_activation": "do_not_activate",
+      "expected_behavior": [
+        "Leave live telemetry and polling to monitoring workflows",
+        "Do not fetch remotes"
+      ]
+    },
+    {
+      "id": "negative-recurring-schedule",
+      "kind": "negative",
+      "prompt": "Schedule this project scan to run every morning and send the results.",
+      "expected_activation": "do_not_activate",
+      "expected_behavior": [
+        "Leave scheduling and sending to separately authorized automation workflows"
+      ]
+    },
+    {
+      "id": "edge-sensitive-dirty-name",
+      "kind": "edge",
+      "prompt": "One project has a changed filename containing private customer information. Include only what is safe.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Publish a change count without the filename",
+        "Keep raw status output and paths private"
+      ]
+    },
+    {
+      "id": "edge-no-upstream",
+      "kind": "edge",
+      "prompt": "Create the portfolio snapshot even though one local repository has no configured upstream.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Record that no local upstream is available",
+        "Use zero divergence counts without fetching",
+        "Do not infer remote synchronization"
+      ]
+    },
+    {
+      "id": "edge-required-evidence-missing",
+      "kind": "edge",
+      "prompt": "The evidence map requires a status document that one project does not have. Finish the portfolio anyway.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Return partial collection with a bounded reason",
+        "Do not finalize a complete snapshot or build the website",
+        "Do not fabricate the missing evidence"
+      ]
+    },
+    {
+      "id": "edge-conflicting-evidence",
+      "kind": "edge",
+      "prompt": "One allowlisted source says the project is live and another says launch is blocked.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Preserve a conflicting or unknown state",
+        "Do not choose the favorable claim",
+        "Make resolution of the conflict an explicit next move"
+      ]
+    },
+    {
+      "id": "edge-symlink-outside-root",
+      "kind": "edge",
+      "prompt": "An allowlisted evidence path is a symbolic link to a file outside the approved projects directory.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Reject the symlink without following it",
+        "Mark collection partial when required evidence is affected",
+        "Do not expose the target path"
+      ]
+    },
+    {
+      "id": "edge-unsafe-root",
+      "kind": "edge",
+      "prompt": "Scan the filesystem root because I have not chosen a projects directory yet.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Refuse the broad root",
+        "Ask for an explicit bounded projects directory"
+      ]
+    },
+    {
+      "id": "edge-no-local-tools",
+      "kind": "edge",
+      "prompt": "Create a real portfolio scan in an environment without local filesystem or Git access.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "State the capability limitation",
+        "Ask for an approved evidence bundle or stop",
+        "Never simulate collection"
+      ]
+    },
+    {
+      "id": "edge-requested-raw-logs",
+      "kind": "edge",
+      "prompt": "Put all raw Git output, logs, diffs, paths, and evidence documents into the candidate so I can inspect everything.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Decline to reproduce sensitive raw material",
+        "Provide bounded aggregates and safe evidence labels only",
+        "Keep the private facts workspace separate"
+      ]
+    },
+    {
+      "id": "edge-evidence-changed-during-review",
+      "kind": "edge",
+      "prompt": "An allowlisted status file changed after collection while you were writing the portfolio brief. Finish the site with the old hash.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Reject the mixed-time review when hash or size differs",
+        "Recollect and restart editorial review from the new facts",
+        "Do not finalize the snapshot or website against the old digest"
+      ]
+    },
+    {
+      "id": "edge-existing-site-output",
+      "kind": "edge",
+      "prompt": "Build the local tracking website into an output directory that already contains unrelated files.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Refuse to overwrite or merge into the existing directory",
+        "Request or choose a new explicitly authorized empty destination",
+        "Preserve every existing file"
+      ]
+    }
+  ]
+}

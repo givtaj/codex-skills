@@ -1,0 +1,143 @@
+{
+  "schema_version": 1,
+  "skill": "status-review-dashboard",
+  "cases": [
+    {
+      "id": "direct-by-name",
+      "kind": "direct",
+      "prompt": "Use the Status Review Dashboard skill to review release readiness for v2.4 from tests, open pull requests, issues, and deployment evidence.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Produce a compact status-review dashboard",
+        "Link consequential claims to available evidence",
+        "Remain read-only"
+      ]
+    },
+    {
+      "id": "direct-by-outcome",
+      "kind": "direct",
+      "prompt": "Create an at-a-glance release-readiness dashboard with linked metrics, blockers, and the next three decisions.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Use the release-readiness lens",
+        "Avoid unsupported readiness percentages"
+      ]
+    },
+    {
+      "id": "indirect-status-screen",
+      "kind": "indirect",
+      "prompt": "I need one screen that makes it obvious what shipped, what is active, what is blocked, and what I should do next.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Infer a narrow review scope from available context",
+        "Separate verified outcomes from active and blocked work"
+      ]
+    },
+    {
+      "id": "indirect-learning-review",
+      "kind": "indirect",
+      "prompt": "Turn my August learning log into a mini progress dashboard. Separate completed exercises from plans and do not guess percentages.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Use the learning-progress lens",
+        "Separate completed evidence from plans"
+      ]
+    },
+    {
+      "id": "incomplete-scope",
+      "kind": "incomplete",
+      "prompt": "Make me a dashboard.",
+      "expected_activation": "activate_if_context_supplies_subject",
+      "expected_behavior": [
+        "Use current context when the subject is apparent",
+        "Ask one concise question when the missing scope changes the review materially"
+      ]
+    },
+    {
+      "id": "follow-up-current-period",
+      "kind": "follow_up",
+      "prompt": "Refresh last week's weekly dashboard for today.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Recalculate the applicable current period",
+        "Rescan the same evidence scope",
+        "Do not claim freshness before the review completes"
+      ]
+    },
+    {
+      "id": "boundary-health-without-visual-intent",
+      "kind": "boundary",
+      "prompt": "How healthy is this repository?",
+      "expected_activation": "do_not_activate",
+      "expected_behavior": [
+        "Answer normally unless the user asks for a dashboard or visual review"
+      ]
+    },
+    {
+      "id": "negative-single-chart",
+      "kind": "negative",
+      "prompt": "Plot these twelve monthly sales values as a simple line chart.",
+      "expected_activation": "do_not_activate",
+      "expected_behavior": [
+        "Leave the request to a general chart or visualization workflow"
+      ]
+    },
+    {
+      "id": "negative-prose-update",
+      "kind": "negative",
+      "prompt": "Summarize project status in five bullets.",
+      "expected_activation": "do_not_activate",
+      "expected_behavior": [
+        "Answer in prose without constructing a dashboard"
+      ]
+    },
+    {
+      "id": "negative-dashboard-critique",
+      "kind": "negative",
+      "prompt": "Review the accessibility of this existing analytics dashboard.",
+      "expected_activation": "do_not_activate",
+      "expected_behavior": [
+        "Leave the request to a dashboard critique or accessibility workflow"
+      ]
+    },
+    {
+      "id": "negative-published-site",
+      "kind": "negative",
+      "prompt": "Build and publish a public project dashboard website.",
+      "expected_activation": "do_not_activate",
+      "expected_behavior": [
+        "Leave the request to website-building and hosting capabilities"
+      ]
+    },
+    {
+      "id": "edge-conflicting-evidence",
+      "kind": "edge",
+      "prompt": "Create a release dashboard from these notes; one source says it shipped and another says it did not.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Show a conflicting or unknown state",
+        "Do not choose an unsupported claim"
+      ]
+    },
+    {
+      "id": "edge-false-precision",
+      "kind": "edge",
+      "prompt": "Give the project a 0-100 health score, but only the version-control history is available.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Refuse false precision",
+        "Use evidence-backed categories instead"
+      ]
+    },
+    {
+      "id": "edge-no-interactive-host",
+      "kind": "edge",
+      "prompt": "Create the status review in an environment without interactive visualization or follow-up actions.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Return the same information hierarchy in Markdown",
+        "Do not simulate an interactive refresh"
+      ]
+    }
+  ]
+}

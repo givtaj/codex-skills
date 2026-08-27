@@ -1,0 +1,20 @@
+{
+  "name": "givtaj-skills",
+  "interface": {
+    "displayName": "givtaj Codex Skills"
+  },
+  "plugins": [
+    {
+      "name": "status-review-dashboard",
+      "source": {
+        "source": "local",
+        "path": "./plugins/status-review-dashboard"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

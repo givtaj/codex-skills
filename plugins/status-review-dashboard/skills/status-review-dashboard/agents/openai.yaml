@@ -1,0 +1,8 @@
+interface:
+  display_name: "Status Review Dashboard"
+  short_description: "Create evidence-based status review dashboards"
+  brand_color: "#6C5CE7"
+  default_prompt: "Create a source-linked, at-a-glance status review for this project or workflow."
+
+policy:
+  allow_implicit_invocation: true

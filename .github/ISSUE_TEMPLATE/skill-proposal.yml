@@ -1,0 +1,44 @@
+name: Skill proposal
+description: Propose a focused, reusable workflow for the marketplace.
+title: "proposal: "
+labels:
+  - enhancement
+body:
+  - type: input
+    id: goal
+    attributes:
+      label: Recognizable user goal
+      description: Describe the outcome, not a model, implementation, or internal codename.
+    validations:
+      required: true
+  - type: input
+    id: canonical_name
+    attributes:
+      label: Proposed canonical name
+      placeholder: lower-case-kebab-case
+    validations:
+      required: true
+  - type: textarea
+    id: positive_requests
+    attributes:
+      label: Requests that should activate it
+      description: Include direct, indirect, and incomplete examples.
+    validations:
+      required: true
+  - type: textarea
+    id: negative_requests
+    attributes:
+      label: Nearby requests that should not activate it
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies and side effects
+      description: List services, tools, scripts, host capabilities, writes, and permission requirements.
+  - type: textarea
+    id: provenance
+    attributes:
+      label: Provenance and redistribution permission
+    validations:
+      required: true

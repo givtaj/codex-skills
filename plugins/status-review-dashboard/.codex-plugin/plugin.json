@@ -1,0 +1,40 @@
+{
+  "name": "status-review-dashboard",
+  "version": "0.1.0",
+  "description": "Create compact, source-linked status-review dashboards for project health, release readiness, workflow operations, learning progress, and periodic activity.",
+  "author": {
+    "name": "givtaj",
+    "url": "https://github.com/givtaj"
+  },
+  "homepage": "https://github.com/givtaj/codex-skills/tree/main/plugins/status-review-dashboard",
+  "repository": "https://github.com/givtaj/codex-skills",
+  "license": "MIT",
+  "keywords": [
+    "dashboard",
+    "project-health",
+    "release-readiness",
+    "review",
+    "workflow-operations"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Status Review Dashboard",
+    "shortDescription": "Evidence-based status reviews at a glance",
+    "longDescription": "Turn project, release, workflow, learning, or periodic activity evidence into a compact status-review dashboard with clear state, source links, and next actions. Render it interactively when the host supports that capability, or preserve the same hierarchy in Markdown.",
+    "developerName": "givtaj",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read"
+    ],
+    "websiteURL": "https://github.com/givtaj/codex-skills/tree/main/plugins/status-review-dashboard",
+    "privacyPolicyURL": "https://github.com/givtaj/codex-skills/blob/main/PRIVACY.md",
+    "defaultPrompt": [
+      "Create a compact project health dashboard.",
+      "Review release readiness as an interactive dashboard.",
+      "Turn this week's work into an evidence-based dashboard."
+    ],
+    "brandColor": "#6C5CE7",
+    "screenshots": []
+  }
+}

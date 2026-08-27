@@ -39,6 +39,18 @@ All notable changes to published plugins are recorded here. Versions follow sema
 - Removed SSH-only transport, mandatory field schemas, fixed work identifiers, and fixed lifecycle assumptions.
 - Updated bundled workflow actions to reviewed commit-pinned releases.
 
+## status-review-dashboard 0.1.1 - 2026-08-27
+
+### Added
+
+- A routed evidence and decision model for claim support, source freshness, attention ordering, executable next moves, and sensitive-output minimization.
+- Golden requests covering Git evidence boundaries, mixed freshness, sensitive evidence, priority ranking, and persistence or automation non-triggers.
+
+### Changed
+
+- Distinguished mechanically observed repository state from reviewed health, readiness, stage, completion, shipment, deployment, and operational claims.
+- Clarified that persistence, recurring automation, site generation, publishing, deployment, and hosting remain separate workflows.
+
 ## status-review-dashboard 0.1.0 - 2026-08-27
 
 ### Added

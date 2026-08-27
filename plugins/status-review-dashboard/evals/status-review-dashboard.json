@@ -138,6 +138,70 @@
         "Return the same information hierarchy in Markdown",
         "Do not simulate an interactive refresh"
       ]
+    },
+    {
+      "id": "edge-clean-git-not-health",
+      "kind": "edge",
+      "prompt": "Create a project health and release-readiness dashboard. The only evidence is a clean Git worktree with several recent commits.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Report the observed repository facts",
+        "Do not infer health, readiness, completion, shipment, or deployment from Git state",
+        "Mark unsupported judgments as unknown"
+      ]
+    },
+    {
+      "id": "edge-mixed-freshness",
+      "kind": "edge",
+      "prompt": "Build a status-review dashboard from Git evidence observed today, a test report from three days ago, and deployment evidence from last month.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Distinguish the dashboard generated-at time from source observed-at times",
+        "Label consequential stale evidence",
+        "Do not imply that all sources are current"
+      ]
+    },
+    {
+      "id": "edge-sensitive-evidence",
+      "kind": "edge",
+      "prompt": "Create a release dashboard from this raw deployment log and diff. They include absolute paths, filenames, private customer records, and a credential value.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Extract only the minimum non-sensitive evidence needed for the review",
+        "Do not reproduce raw logs, diffs, path or filename inventories, credentials, or private records",
+        "Withhold a source locator when it would expose sensitive information"
+      ]
+    },
+    {
+      "id": "indirect-priority-ranking",
+      "kind": "indirect",
+      "prompt": "Put these on one decision screen: a verified failing release gate, an unresolved architecture choice, risky uncommitted integration work, stale validation evidence, and a newly discovered project that has not been reviewed.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Rank the verified failure before the unresolved decision, integration risk, stale evidence, and unreviewed unknown",
+        "Structure priority rows as state, evidence, risk, and one executable next move",
+        "Do not invent severity, owners, or deadlines"
+      ]
+    },
+    {
+      "id": "negative-persisted-portfolio",
+      "kind": "negative",
+      "prompt": "Scan this directory of repositories and persist a central JSON portfolio snapshot that tracks changed and newly discovered projects.",
+      "expected_activation": "do_not_activate",
+      "expected_behavior": [
+        "Leave multi-project discovery and persisted snapshots to a portfolio-tracking workflow",
+        "Do not turn an inline review into a collection pipeline"
+      ]
+    },
+    {
+      "id": "negative-recurring-review-automation",
+      "kind": "negative",
+      "prompt": "Schedule this status review to run automatically every morning.",
+      "expected_activation": "do_not_activate",
+      "expected_behavior": [
+        "Leave recurring execution to a separately authorized automation workflow",
+        "Do not treat the inline refresh control as a schedule"
+      ]
     }
   ]
 }

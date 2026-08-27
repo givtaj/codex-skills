@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -10,6 +11,10 @@ from scripts import validate_repo
 
 
 SAFE_EMAIL = "12345678+example-validator@users.noreply.github.com"
+VALIDATE_REPO_SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "validate_repo.py"
+IDENTITY_SCRIPT = (
+    Path(__file__).resolve().parents[1] / "scripts" / "validate_public_git_identity.py"
+)
 
 
 class GitFixture:
@@ -129,6 +134,17 @@ On Windows, use C:\\Users\\username\\project.
 
         self.assertIn("npm access token pattern", message)
 
+    def test_utf16_little_and_big_endian_secrets_are_rejected(self) -> None:
+        for encoding, prefix in (("utf-16-le", b"\xff"), ("utf-16-be", b"\x01")):
+            secret = "gl" + "pat-" + encoding[-2:].upper() * 10
+            with self.subTest(encoding=encoding), GitFixture() as fixture:
+                fixture.write("credential.bin", prefix + secret.encode(encoding))
+                fixture.commit("Add encoded fixture")
+
+                message = self.assert_rejected_without_echo(fixture, secret)
+
+                self.assertIn("GitLab access token pattern", message)
+
     def test_representative_new_credential_formats_are_rejected(self) -> None:
         for label, secret in representative_new_secrets():
             with self.subTest(label=label), GitFixture() as fixture:
@@ -175,6 +191,60 @@ On Windows, use C:\\Users\\username\\project.
             message = self.assert_rejected_without_echo(fixture, secret)
 
         self.assertIn("Git ref blob", message)
+
+    def test_notes_and_custom_refs_are_scanned(self) -> None:
+        cases = ("notes", "custom")
+        for ref_kind in cases:
+            secret = "wh" + "sec_" + ref_kind.upper() * 8
+            with self.subTest(ref_kind=ref_kind), GitFixture() as fixture:
+                fixture.write("README.md", "safe\n")
+                fixture.commit("Initial commit")
+                if ref_kind == "notes":
+                    fixture.git(
+                        "notes",
+                        "--ref=review",
+                        "add",
+                        "--message",
+                        secret,
+                        "HEAD",
+                    )
+                else:
+                    orphan = fixture.write("orphan.bin", secret)
+                    blob = fixture.git("hash-object", "-w", str(orphan))
+                    orphan.unlink()
+                    fixture.git("update-ref", "refs/review/orphan", blob)
+
+                message = self.assert_rejected_without_echo(fixture, secret)
+
+                self.assertIn("Git", message)
+
+    def test_malformed_manifest_key_cannot_echo_an_escaped_secret(self) -> None:
+        secret = "gl" + "pat-" + "Q" * 20
+        escaped_key = "glp" + "\\u0061" + "t-" + "Q" * 20
+        marketplace = (
+            '{"name":"fixture-marketplace","interface":{"displayName":"Fixture"},'
+            f'"plugins":[{{"{escaped_key}":"value"}}]}}'
+        )
+        with GitFixture() as fixture:
+            fixture.write("scripts/validate_repo.py", VALIDATE_REPO_SCRIPT.read_bytes())
+            fixture.write("scripts/validate_public_git_identity.py", IDENTITY_SCRIPT.read_bytes())
+            fixture.write(".agents/plugins/marketplace.json", marketplace)
+            fixture.commit("Add malformed manifest fixture")
+
+            result = subprocess.run(
+                [sys.executable, "scripts/validate_repo.py"],
+                cwd=fixture.path,
+                check=False,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+
+        combined_output = result.stdout + result.stderr
+        self.assertEqual(result.returncode, 1)
+        self.assertNotIn(secret, combined_output)
+        self.assertIn("<redacted-secret>", result.stderr)
+        self.assertIn("unsupported field", result.stderr)
 
     def test_real_email_and_personal_home_path_are_rejected(self) -> None:
         private_email = "owner@" + "privatecorp.dev"

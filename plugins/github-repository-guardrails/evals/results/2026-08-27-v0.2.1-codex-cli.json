@@ -3,8 +3,18 @@
   "skill": "github-repository-guardrails",
   "plugin_version": "0.2.1",
   "date": "2026-08-27",
-  "scope": "public-consumer-codex-cli-smoke",
+  "scope": "published-v0.2.0-path-baseline",
   "status": "partial",
+  "result_context": "Recorded during 0.2.1 preparation; this result does not verify a public 0.2.1 artifact.",
+  "tested_artifact": {
+    "release_state": "published",
+    "plugin_version": "0.2.0",
+    "candidate_ref": "github-repository-guardrails-v0.2.0",
+    "commit_sha": "fb8b483c11a9ec028f4de57f03eb2b294b79580c",
+    "repository_url": "https://github.com/givtaj/codex-skills",
+    "codex_cli_version": null,
+    "note": "The Codex CLI version used for this baseline was not recorded."
+  },
   "checks": [
     "anonymous HTTPS clone",
     "direct GitHub skill download",
@@ -16,15 +26,31 @@
   "behavioral_replay": {
     "status": "partial",
     "passed": [
-      "the named skill loaded from the installed marketplace package",
-      "audit instructions preserved read-only local and GitHub boundaries",
-      "repository and identity validators ran successfully from the fresh clone"
+      "the named skill loaded from the installed published 0.2.0 marketplace package",
+      "the published 0.2.0 audit instructions preserved read-only local and GitHub boundaries",
+      "repository and identity validators ran successfully from the fresh published 0.2.0 clone"
     ],
     "pending": [
       "complete replay of every versioned activation case",
       "authorized GitHub Project writes",
       "GitHub Enterprise Server and multi-host replay"
     ],
-    "note": "The disposable audit was stopped after the required smoke assertions because unrelated nested collaboration and connector startup did not complete in the ephemeral host."
+    "note": "The disposable 0.2.0 baseline audit was stopped after the required smoke assertions because unrelated nested collaboration and connector startup did not complete in the ephemeral host."
+  },
+  "public_candidate_verification": {
+    "status": "pending",
+    "plugin_version": "0.2.1",
+    "candidate_ref": null,
+    "commit_sha": null,
+    "repository_url": null,
+    "codex_cli_version": null,
+    "required_checks": [
+      "anonymous HTTPS clone of the immutable candidate",
+      "marketplace registration from the candidate repository",
+      "plugin installation from the candidate repository",
+      "installed-package validation",
+      "explicit read-only Codex CLI activation"
+    ],
+    "note": "No published 0.2.1 candidate has been tested; populate the coordinates and results only after that run."
   }
 }

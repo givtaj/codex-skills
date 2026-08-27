@@ -90,3 +90,30 @@ jobs:
             echo "The core repository guardrail surface is required" >&2
             exit 1
           fi
+
+          surface_selected() {
+            [[ "$seen" == *",${1},"* ]]
+          }
+
+          require_selected_file() {
+            local surface="$1"
+            local path="$2"
+            if surface_selected "$surface" && { [[ ! -f "$path" ]] || [[ -L "$path" ]]; }; then
+              echo "Selected ${surface} guardrail surface is missing its local authority at ${path}" >&2
+              exit 1
+            fi
+          }
+
+          require_selected_file intent docs/prompts.md
+          require_selected_file tasks TASKS.md
+          require_selected_file outcomes CHANGELOG.md
+          require_selected_file planning PLAN.md
+          require_selected_file status PROJECT_STATUS.md
+          require_selected_file issues .github/ISSUE_TEMPLATE/work-item.yml
+          require_selected_file review .github/pull_request_template.md
+          require_selected_file ci .github/workflows/guardrails-audit.yml
+
+          if surface_selected projects && [[ "$project_authority" == disabled ]]; then
+            echo "The projects surface cannot be selected while Project authority is disabled" >&2
+            exit 1
+          fi

@@ -111,6 +111,41 @@ class PublicGitIdentityTests(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn(private_commit[:12], result.stderr)
 
+    def test_default_walk_reaches_notes_and_custom_refs(self) -> None:
+        for ref_kind in ("notes", "custom"):
+            with self.subTest(ref_kind=ref_kind):
+                self.repo.commit(f"public {ref_kind}")
+                if ref_kind == "notes":
+                    self.repo.git(
+                        "notes",
+                        "--ref=review",
+                        "add",
+                        "--message",
+                        "review note",
+                        "HEAD",
+                        email="person@example.com",
+                    )
+                    private_commit = self.repo.git("rev-parse", "refs/notes/review")
+                else:
+                    self.repo.git("switch", "--create", "custom-topic")
+                    private_commit = self.repo.commit(
+                        "private custom ref",
+                        email="person@example.com",
+                    )
+                    self.repo.git("switch", "main")
+                    self.repo.git("update-ref", "refs/review/topic", private_commit)
+                    self.repo.git("branch", "--delete", "--force", "custom-topic")
+
+                result = self.repo.validate()
+
+                self.assertEqual(result.returncode, 1)
+                self.assertIn(private_commit[:12], result.stderr)
+
+                if ref_kind == "notes":
+                    self.repo.git("update-ref", "-d", "refs/notes/review")
+                else:
+                    self.repo.git("update-ref", "-d", "refs/review/topic")
+
     def test_explicit_range_can_exclude_a_synthetic_merge_commit(self) -> None:
         base = self.repo.commit("base")
         self.repo.git("switch", "--create", "feature")
@@ -174,12 +209,15 @@ class PublicGitIdentityTests(unittest.TestCase):
             "new object under legacy name",
             email="person@example.com",
         )
+        tag_object = self.repo.git(
+            "rev-parse", "refs/tags/status-review-dashboard-v0.1.0"
+        )
 
         result = self.repo.validate()
 
         self.assertEqual(result.returncode, 1)
         self.assertIn(
-            "annotated tag status-review-dashboard-v0.1.0 tagger", result.stderr
+            f"annotated tag object {tag_object[:12]} tagger", result.stderr
         )
 
     def test_non_commit_tag_is_checked_without_becoming_a_revision_root(self) -> None:
@@ -201,6 +239,18 @@ class PublicGitIdentityTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("1 non-legacy commit(s)", result.stdout)
         self.assertIn("1 non-legacy annotated tag(s)", result.stdout)
+
+    def test_non_commit_custom_ref_is_not_used_as_a_revision_root(self) -> None:
+        self.repo.commit("public commit")
+        blob_path = self.repo.path / "custom-evidence.txt"
+        blob_path.write_text("release evidence\n", encoding="utf-8")
+        blob = self.repo.git("hash-object", "-w", str(blob_path))
+        self.repo.git("update-ref", "refs/review/evidence", blob)
+
+        result = self.repo.validate()
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("1 non-legacy commit(s)", result.stdout)
 
     def test_legacy_exemptions_are_immutable_object_ids(self) -> None:
         source = SCRIPT.read_text(encoding="utf-8")

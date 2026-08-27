@@ -24,11 +24,12 @@ LEGACY_COMMIT_EXEMPTIONS = {
 LEGACY_TAG_OBJECT_EXEMPTIONS = {
     "85d7b564961bcbbc7f47325f8df18fd5ab49b4fb",
 }
+OBJECT_ID_RE = re.compile(r"^[0-9a-f]{40}(?:[0-9a-f]{24})?$")
 
 
 def git(*args: str) -> str:
     result = subprocess.run(
-        ["git", *args],
+        ["git", "--no-replace-objects", *args],
         check=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -50,29 +51,69 @@ def require_complete_history() -> None:
         )
 
 
-def default_commit_revisions() -> list[str]:
-    """Return commit roots visible through publishable refs and the checkout."""
+def ref_object_records() -> list[tuple[str, str]]:
+    """Return object IDs and types without using untrusted ref names as revisions."""
 
-    ref_lines = git(
+    records: list[tuple[str, str]] = []
+    lines = git(
         "for-each-ref",
-        "--format=%(refname)%00%(objecttype)%00%(*objecttype)",
-        "refs/heads",
-        "refs/remotes",
-        "refs/tags",
+        "--format=%(objectname)%00%(objecttype)",
+        "refs",
     ).splitlines()
-    revisions: set[str] = set()
-    for line in ref_lines:
+    for line in lines:
         if not line:
             continue
-        ref_name, object_type, peeled_object_type = line.split("\x00", 2)
-        if object_type == "commit" or peeled_object_type == "commit":
-            revisions.add(ref_name)
+        fields = line.split("\x00")
+        if len(fields) != 2 or OBJECT_ID_RE.fullmatch(fields[0]) is None:
+            raise ValueError("malformed Git ref object metadata")
+        records.append((fields[0], fields[1]))
+    return records
+
+
+def peel_commit(object_id: str) -> str | None:
+    result = subprocess.run(
+        [
+            "git",
+            "--no-replace-objects",
+            "rev-parse",
+            "--verify",
+            "--quiet",
+            f"{object_id}^{{commit}}",
+        ],
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    if result.returncode != 0:
+        return None
+    commit = result.stdout.strip()
+    if OBJECT_ID_RE.fullmatch(commit) is None:
+        raise ValueError("malformed peeled commit object ID")
+    return commit
+
+
+def default_commit_revisions() -> list[str]:
+    """Return commit roots visible through every local ref and the checkout."""
+
+    revisions: set[str] = set()
+    for object_id, _object_type in ref_object_records():
+        commit = peel_commit(object_id)
+        if commit is not None:
+            revisions.add(commit)
 
     # A pull_request checkout can leave its synthetic merge commit detached and
     # therefore absent from every ref namespace. Include it for the safe default;
     # callers can select the contribution itself with --commit-range.
     head = subprocess.run(
-        ["git", "rev-parse", "--verify", "--quiet", "HEAD^{commit}"],
+        [
+            "git",
+            "--no-replace-objects",
+            "rev-parse",
+            "--verify",
+            "--quiet",
+            "HEAD^{commit}",
+        ],
         check=False,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -89,7 +130,7 @@ def commits_for(revisions: Sequence[str]) -> list[str]:
         return []
     for revision in revisions:
         if not revision or revision.startswith("-") or "\n" in revision:
-            raise ValueError(f"invalid commit revision: {revision!r}")
+            raise ValueError("invalid commit revision argument")
     return git("rev-list", *revisions, "--").splitlines()
 
 
@@ -109,25 +150,55 @@ def validate_commits(revisions: Sequence[str]) -> int:
     return commit_count
 
 
+def parse_tag_object(object_id: str) -> tuple[str, str, str | None]:
+    raw = git("cat-file", "tag", object_id)
+    headers = raw.partition("\n\n")[0]
+    target_id: str | None = None
+    declared_type: str | None = None
+    tagger_email: str | None = None
+    for line in headers.splitlines():
+        if line.startswith("object "):
+            target_id = line.removeprefix("object ")
+        elif line.startswith("type "):
+            declared_type = line.removeprefix("type ")
+        elif line.startswith("tagger "):
+            match = re.search(r"<([^<>]+)>\s+\d+\s+[+-]\d{4}$", line)
+            if match is not None:
+                tagger_email = match.group(1)
+    if (
+        target_id is None
+        or OBJECT_ID_RE.fullmatch(target_id) is None
+        or declared_type is None
+    ):
+        raise ValueError(f"annotated tag object {object_id[:12]} is malformed")
+    actual_type = git("cat-file", "-t", target_id)
+    if actual_type != declared_type:
+        raise ValueError(f"annotated tag object {object_id[:12]} has a target type mismatch")
+    return target_id, actual_type, tagger_email
+
+
 def validate_annotated_tags() -> int:
-    tag_lines = git(
-        "for-each-ref",
-        "--format=%(refname)%00%(objectname)%00%(objecttype)%00%(taggeremail)",
-        "refs/tags",
-    )
     tag_count = 0
-    for line in tag_lines.splitlines():
-        if not line:
+    pending = [object_id for object_id, object_type in ref_object_records() if object_type == "tag"]
+    visited: set[str] = set()
+    while pending:
+        object_id = pending.pop()
+        if object_id in visited:
             continue
-        ref_name, object_id, object_type, tagger = line.split("\x00", 3)
-        if object_type != "tag" or object_id in LEGACY_TAG_OBJECT_EXEMPTIONS:
-            continue
-        tag_name = ref_name.removeprefix("refs/tags/")
-        match = re.search(r"<([^<>]+)>\s*$", tagger)
-        if match is None:
-            raise ValueError(f"annotated tag {tag_name} is missing a tagger email")
-        require_noreply(f"annotated tag {tag_name} tagger", match.group(1))
-        tag_count += 1
+        visited.add(object_id)
+        target_id, target_type, tagger_email = parse_tag_object(object_id)
+        if target_type == "tag":
+            pending.append(target_id)
+        if object_id not in LEGACY_TAG_OBJECT_EXEMPTIONS:
+            if tagger_email is None:
+                raise ValueError(
+                    f"annotated tag object {object_id[:12]} is missing a tagger email"
+                )
+            require_noreply(
+                f"annotated tag object {object_id[:12]} tagger",
+                tagger_email,
+            )
+            tag_count += 1
     return tag_count
 
 
@@ -142,7 +213,7 @@ def parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
         metavar="REVISION",
         help=(
             "Git revision or range to validate with git rev-list; repeat to add roots. "
-            "When omitted, local branches, remote branches, tags, and HEAD are validated. "
+            "When omitted, all locally available refs and HEAD are validated. "
             "For a pull-request contribution without its synthetic merge, pass a range "
             "such as HEAD^1..HEAD^2."
         ),
@@ -166,10 +237,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         commit_count = validate_commits(revisions)
         tag_count = 0 if args.skip_tags else validate_annotated_tags()
     except (OSError, subprocess.CalledProcessError, ValueError) as exc:
-        if isinstance(exc, subprocess.CalledProcessError) and exc.stderr:
-            detail = exc.stderr.strip()
-        else:
-            detail = str(exc)
+        detail = (
+            "Git inspection command failed"
+            if isinstance(exc, subprocess.CalledProcessError)
+            else str(exc)
+        )
         print(f"public Git identity validation failed: {detail}", file=sys.stderr)
         return 1
 

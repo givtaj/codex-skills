@@ -110,6 +110,8 @@ When the core configuration is selected, use this version-1 contract:
 
 Reject missing, duplicate, unknown, or placeholder values before installing the configuration or its audit workflow. Do not add lifecycle, changelog, or integration fields merely because their surfaces are available; include them only when the repository selected the corresponding authority or policy.
 
+The unchanged bundled audit maps each selected local surface to the starting-point path below and requires that path to be a regular, non-symbolic-link file. It checks no file for the external `projects` surface. If the repository reuses a compatible authority at another path, adapt and test the audit mapping as part of the approved setup instead of copying a duplicate authority. Unselected surfaces remain optional.
+
 | Desired outcome | Starting point |
 | --- | --- |
 | Durable agent instructions | `assets/guardrails/core/AGENTS.md` |

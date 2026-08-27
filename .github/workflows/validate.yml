@@ -28,6 +28,14 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Fetch published refs for validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --quiet --force --prune origin \
+            '+refs/*:refs/validation/origin/*' \
+            '^refs/pull/*'
+
       - name: Run validator regression tests
         run: python3 -m unittest discover -s tests -v
 

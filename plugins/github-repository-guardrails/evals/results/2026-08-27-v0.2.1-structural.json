@@ -3,20 +3,36 @@
   "skill": "github-repository-guardrails",
   "plugin_version": "0.2.1",
   "date": "2026-08-27",
-  "scope": "structural-and-regression",
+  "scope": "local-pre-release-structural-and-regression",
   "status": "passed",
+  "tested_artifact": {
+    "release_state": "local-pre-release",
+    "plugin_version": "0.2.1",
+    "candidate_ref": null,
+    "commit_sha": null,
+    "repository_url": null,
+    "note": "Checks ran against the local candidate before an immutable public candidate was recorded."
+  },
   "checks": [
-    "22 deterministic validator regression tests",
+    "32 deterministic validator and workflow regression tests",
     "full-history public-content and credential scan",
     "all-ref public Git identity validation",
     "repository marketplace validation",
-    "current installed OpenAI skill validation",
-    "current installed OpenAI plugin validation",
+    "local candidate validation with the installed OpenAI skill validator",
+    "local candidate validation with the installed OpenAI plugin validator",
     "Python compilation and diff hygiene",
     "bundled configuration and audit workflow fixtures"
   ],
   "behavioral_replay": {
     "status": "partial",
     "result": "2026-08-27-v0.2.1-codex-cli.json"
+  },
+  "public_candidate_verification": {
+    "status": "pending",
+    "candidate_ref": null,
+    "commit_sha": null,
+    "repository_url": null,
+    "codex_cli_version": null,
+    "note": "Populate these fields only after testing an immutable public 0.2.1 candidate."
   }
 }

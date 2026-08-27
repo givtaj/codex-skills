@@ -25,7 +25,7 @@ The plugin bundles instruction and template files only. It has no server, teleme
 
 ## Maturity and provenance
 
-Version `0.2.1` is a public preview. It includes structural validation, a labelled activation request set, and a successful public clone/install/load smoke test. Full replay of every golden request across supported hosts remains pending.
+Version `0.2.1` is an unreleased public-preview candidate. Its local structural and regression checks pass, and the published `0.2.0` artifact previously passed the public clone/install/load smoke path. No immutable public `0.2.1` candidate has been tested yet. Public-candidate verification and full replay of every golden request across supported hosts remain pending.
 
 This plugin was adapted from the public [`github-project-maintainer-skills`](https://github.com/givtaj/github-project-maintainer-skills) release `v0.1.1` at commit `55bb780`. It was renamed before publication here because the original name could be mistaken for a GitHub Projects-board-only workflow. The original MIT notice is preserved in [`SOURCE_LICENSE`](./SOURCE_LICENSE).
 

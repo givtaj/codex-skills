@@ -9,6 +9,7 @@ import os
 import re
 import subprocess
 import sys
+from collections.abc import Iterator
 from pathlib import Path
 
 try:
@@ -32,6 +33,7 @@ SEMVER_RE = re.compile(
     r"^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$"
 )
 HEX_COLOR_RE = re.compile(r"^#[0-9A-Fa-f]{6}$")
+OBJECT_ID_BYTES_RE = re.compile(rb"^[0-9a-f]{40}(?:[0-9a-f]{24})?$")
 MODEL_VERSION_RE = re.compile(
     r"(?i)\b(?:gpt|claude|gemini|llama)[- ]?\d+(?:\.\d+)*\b"
 )
@@ -91,6 +93,8 @@ GENERIC_HOME_USERS = {
 }
 RESERVED_EMAIL_DOMAINS = {"example.com", "example.net", "example.org"}
 RESERVED_EMAIL_SUFFIXES = (".invalid", ".localhost", ".test")
+UTF16_SCAN_CHUNK_BYTES = 256 * 1024
+UTF16_SCAN_OVERLAP_BYTES = 1024
 INSTALL_POLICIES = {"AVAILABLE", "INSTALLED_BY_DEFAULT", "NOT_AVAILABLE"}
 AUTH_POLICIES = {"ON_INSTALL", "ON_USE"}
 MARKETPLACE_CATEGORIES = {
@@ -181,7 +185,8 @@ ALLOWED_MARKETPLACE_POLICY_FIELDS = {"installation", "authentication", "products
 
 
 class ValidationError(Exception):
-    pass
+    def __init__(self, message: str) -> None:
+        super().__init__(sanitize_diagnostic(message))
 
 
 def require(condition: bool, message: str) -> None:
@@ -223,19 +228,26 @@ def has_personal_absolute_path(text: str) -> bool:
     """
 
     for match in PERSONAL_PATH_CANDIDATE_RE.finditer(text):
-        username = (
-            match.group("file_user")
-            or match.group("unix_user")
-            or match.group("windows_user")
-            or ""
-        )
-        normalized = username.casefold().rstrip(".,;)")
-        if normalized in GENERIC_HOME_USERS:
-            continue
-        if any(marker in username for marker in ("$", "%", "{", "}")):
-            continue
-        return True
+        if not is_generic_home_match(match):
+            return True
     return False
+
+
+def home_username(match: re.Match[str]) -> str:
+    return (
+        match.group("file_user")
+        or match.group("unix_user")
+        or match.group("windows_user")
+        or ""
+    )
+
+
+def is_generic_home_match(match: re.Match[str]) -> bool:
+    username = home_username(match)
+    normalized = username.casefold().rstrip(".,;)")
+    return normalized in GENERIC_HOME_USERS or any(
+        marker in username for marker in ("$", "%", "{", "}")
+    )
 
 
 def is_allowed_public_email(email: str) -> bool:
@@ -252,15 +264,35 @@ def is_allowed_public_email(email: str) -> bool:
     return domain.endswith(RESERVED_EMAIL_SUFFIXES)
 
 
-def first_public_content_violation(
-    raw: bytes,
-    *,
-    allow_all_emails: bool = False,
-    check_unfinished: bool = True,
-) -> str | None:
-    """Inspect arbitrary bytes without dropping non-UTF-8 or NUL-bearing data."""
+def sanitize_diagnostic(message: str) -> str:
+    """Redact secret-shaped dynamic data before it can reach an exception or log."""
 
-    text = raw.decode("latin-1")
+    sanitized = re.sub(r"[\x00-\x1f\x7f]", "?", str(message))
+    for pattern in SENSITIVE_TEXT_PATTERNS.values():
+        sanitized = pattern.sub("<redacted-secret>", sanitized)
+    sanitized = EMAIL_RE.sub(
+        lambda match: (
+            match.group(0)
+            if is_allowed_public_email(match.group(0))
+            else "<redacted-email>"
+        ),
+        sanitized,
+    )
+    sanitized = PERSONAL_PATH_CANDIDATE_RE.sub(
+        lambda match: (
+            match.group(0) if is_generic_home_match(match) else "<redacted-personal-path>"
+        ),
+        sanitized,
+    )
+    return sanitized
+
+
+def first_text_violation(
+    text: str,
+    *,
+    allow_all_emails: bool,
+    check_unfinished: bool,
+) -> str | None:
     if check_unfinished and "[" + "TODO:" in text:
         return "unfinished placeholder"
     if has_personal_absolute_path(text):
@@ -272,6 +304,52 @@ def first_public_content_violation(
     for label, pattern in SENSITIVE_TEXT_PATTERNS.items():
         if pattern.search(text) is not None:
             return f"{label} pattern"
+    return None
+
+
+def utf16_text_windows(raw: bytes) -> Iterator[str]:
+    """Yield bounded-memory UTF-16 views at both byte alignments."""
+
+    if b"\x00" not in raw:
+        return
+    step = UTF16_SCAN_CHUNK_BYTES - UTF16_SCAN_OVERLAP_BYTES
+    for encoding in ("utf-16-le", "utf-16-be"):
+        for alignment in (0, 1):
+            start = alignment
+            while start < len(raw):
+                piece = raw[start : start + UTF16_SCAN_CHUNK_BYTES]
+                if len(piece) % 2:
+                    piece = piece[:-1]
+                if piece:
+                    yield piece.decode(encoding, errors="ignore")
+                if start + UTF16_SCAN_CHUNK_BYTES >= len(raw):
+                    break
+                start += step
+
+
+def first_public_content_violation(
+    raw: bytes,
+    *,
+    allow_all_emails: bool = False,
+    check_unfinished: bool = True,
+) -> str | None:
+    """Inspect arbitrary bytes without dropping non-UTF-8 or NUL-bearing data."""
+
+    violation = first_text_violation(
+        raw.decode("latin-1"),
+        allow_all_emails=allow_all_emails,
+        check_unfinished=check_unfinished,
+    )
+    if violation is not None:
+        return violation
+    for text in utf16_text_windows(raw):
+        violation = first_text_violation(
+            text,
+            allow_all_emails=allow_all_emails,
+            check_unfinished=check_unfinished,
+        )
+        if violation is not None:
+            return violation
     return None
 
 
@@ -312,7 +390,7 @@ def git_bytes(
     allow_failure: bool = False,
 ) -> bytes:
     result = subprocess.run(
-        ["git", "-C", str(root), *args],
+        ["git", "--no-replace-objects", "-C", str(root), *args],
         input=input_bytes,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -382,6 +460,10 @@ def inspect_reachable_git_object(
 ) -> None:
     """Inspect a ref target, including tags that point directly to trees or blobs."""
 
+    require(
+        OBJECT_ID_BYTES_RE.fullmatch(object_id) is not None,
+        "malformed reachable Git object ID",
+    )
     object_label = object_id[:12].decode("ascii")
     if object_type == b"commit":
         commit_tips.add(object_id)
@@ -423,7 +505,12 @@ def inspect_reachable_git_object(
             target_id = line.removeprefix(b"object ")
         elif line.startswith(b"type "):
             declared_type = line.removeprefix(b"type ")
-    require(target_id is not None and declared_type is not None, f"malformed annotated tag {object_label}")
+    require(
+        target_id is not None
+        and OBJECT_ID_BYTES_RE.fullmatch(target_id) is not None
+        and declared_type in {b"blob", b"commit", b"tag", b"tree"},
+        f"malformed annotated tag {object_label}",
+    )
     actual_type = git_bytes(root, "cat-file", "-t", target_id.decode("ascii")).strip()
     require(actual_type == declared_type, f"annotated tag target type mismatch at {object_label}")
     inspect_reachable_git_object(
@@ -468,7 +555,7 @@ def inspect_index(
 
 
 def validate_public_git_history(root: Path) -> None:
-    """Scan content reachable from publishable local, remote, and tag refs."""
+    """Scan content reachable from every locally available Git ref and HEAD."""
 
     require(
         bool(git_bytes(root, "rev-parse", "--git-dir", allow_failure=True)),
@@ -483,9 +570,7 @@ def validate_public_git_history(root: Path) -> None:
         root,
         "for-each-ref",
         "--format=%(refname)%00%(objectname)%00%(objecttype)",
-        "refs/heads",
-        "refs/remotes",
-        "refs/tags",
+        "refs",
     )
     commit_tips: set[bytes] = set()
     scanned_blobs: set[bytes] = set()
@@ -765,6 +850,8 @@ def validate_skill(plugin_dir: Path, skill_md: Path, skill_names: set[str]) -> s
 
 
 def validate() -> tuple[int, int, int]:
+    # Inspect raw bytes and history before parsing attacker-controlled schema data.
+    validate_public_content(ROOT)
     marketplace = load_json(MARKETPLACE_PATH)
     reject_unknown_fields(marketplace, ALLOWED_MARKETPLACE_FIELDS, relative(MARKETPLACE_PATH))
     marketplace_name = marketplace.get("name")
@@ -906,8 +993,6 @@ def validate() -> tuple[int, int, int]:
     for name in entry_names:
         require(f"../plugins/{name}/" in catalog_text, f"{name}: missing category catalog link")
 
-    validate_public_content(ROOT)
-
     return len(entry_names), len(skill_names), eval_count
 
 
@@ -915,7 +1000,7 @@ def main() -> int:
     try:
         plugins, skills, evals = validate()
     except (OSError, ValidationError) as exc:
-        print(f"validation failed: {exc}", file=sys.stderr)
+        print(f"validation failed: {sanitize_diagnostic(str(exc))}", file=sys.stderr)
         return 1
     print(f"Validated {plugins} plugin(s), {skills} skill(s), and {evals} golden request set(s).")
     return 0

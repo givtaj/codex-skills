@@ -8,7 +8,7 @@ All notable changes to published plugins are recorded here. Versions follow sema
 
 - Repository-wide canonical naming, durable-language, public-safety, and golden-request import gates.
 
-## github-repository-guardrails 0.2.1 - 2026-08-27
+## github-repository-guardrails 0.2.1 - Unreleased
 
 ### Fixed
 
@@ -18,9 +18,11 @@ All notable changes to published plugins are recorded here. Versions follow sema
 - Hardened public-content validation across Git history, filenames, binary payloads, Git metadata, and additional high-signal credential formats.
 - Accepted GitHub system and bot noreply identities while validating contribution commits instead of synthetic pull-request merge identities.
 
-### Validated
+### Validation status
 
-- Repeated anonymous HTTPS clone, direct skill download, marketplace registration, plugin installation, installed-package validation, and explicit read-only Codex CLI activation from the published repository.
+- Local pre-release structural, regression, privacy, and packaging checks passed for the `0.2.1` candidate.
+- Public-path clone, direct-download, marketplace-registration, installation, installed-package validation, and read-only Codex CLI smoke evidence applies to the published `0.2.0` artifact at commit `fb8b483c11a9ec028f4de57f03eb2b294b79580c`; it does not verify `0.2.1`.
+- Public clone/install/load verification of an immutable `0.2.1` candidate remains pending.
 
 ## github-repository-guardrails 0.2.0 - 2026-08-27
 

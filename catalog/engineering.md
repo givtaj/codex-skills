@@ -1,7 +1,7 @@
 # Engineering
 
-Stable skills for software delivery, code quality, architecture, debugging, and repository maintenance will be indexed here.
+## GitHub Repository Guardrails
 
-No stable engineering plugins are hosted in this marketplace yet.
+[`github-repository-guardrails`](../plugins/github-repository-guardrails/) establishes, maintains, and audits repository-management conventions, including optional GitHub issue and Project traceability. Version `0.2.0` is a public preview adapted from the earlier focused repository.
 
-The focused [`github-project-maintainer-skills`](https://github.com/givtaj/github-project-maintainer-skills) repository remains separate for now.
+Additional skills for software delivery, code quality, architecture, and debugging will be indexed here as they pass the publication gate.

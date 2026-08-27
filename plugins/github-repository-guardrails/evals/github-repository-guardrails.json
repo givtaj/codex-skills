@@ -1,0 +1,170 @@
+{
+  "schema_version": 1,
+  "skill": "github-repository-guardrails",
+  "cases": [
+    {
+      "id": "direct-setup",
+      "kind": "direct",
+      "prompt": "Use GitHub Repository Guardrails to set up durable project records and optional GitHub traceability for this repository.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Inspect repository instructions and existing authorities first",
+        "Separate local proposals from GitHub mutations",
+        "Ask only unresolved decisions"
+      ]
+    },
+    {
+      "id": "direct-audit",
+      "kind": "direct",
+      "prompt": "Audit this repository with the GitHub Repository Guardrails skill and report duplicate authorities, drift, and missing evidence without changing anything.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Remain read-only",
+        "Report evidence, uncertainty, and the smallest useful next decisions"
+      ]
+    },
+    {
+      "id": "indirect-reconcile",
+      "kind": "indirect",
+      "prompt": "Our roadmap, task file, issues, and Project board disagree. Help me decide what should be authoritative and reconcile the workflow safely.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Inventory existing authorities",
+        "Preserve repository vocabulary",
+        "Avoid creating another source of truth"
+      ]
+    },
+    {
+      "id": "indirect-governance",
+      "kind": "indirect",
+      "prompt": "This long-lived repository has no clear planning, ownership, release, or decision-record conventions. Propose a minimal governance setup based on what already exists.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Inspect before recommending",
+        "Recommend only recurring needs",
+        "Preview exact changes"
+      ]
+    },
+    {
+      "id": "incomplete-subject",
+      "kind": "incomplete",
+      "prompt": "Set up the project guardrails here.",
+      "expected_activation": "activate_if_context_supplies_subject",
+      "expected_behavior": [
+        "Use the current repository when context identifies it",
+        "Ask one concise question when repository scope is genuinely unclear"
+      ]
+    },
+    {
+      "id": "follow-up-local-only",
+      "kind": "follow_up",
+      "prompt": "Apply the approved local guardrail files now, but do not create or edit anything on GitHub.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Apply only the authorized local portion",
+        "Perform no GitHub writes",
+        "Validate the changed files"
+      ]
+    },
+    {
+      "id": "boundary-ordinary-code",
+      "kind": "boundary",
+      "prompt": "Fix the failing parser test and update the implementation.",
+      "expected_activation": "do_not_activate",
+      "expected_behavior": [
+        "Leave ordinary implementation to the normal coding workflow"
+      ]
+    },
+    {
+      "id": "boundary-one-off-issue",
+      "kind": "boundary",
+      "prompt": "Create one GitHub issue for this confirmed bug.",
+      "expected_activation": "do_not_activate",
+      "expected_behavior": [
+        "Leave a one-off issue edit to the normal GitHub workflow"
+      ]
+    },
+    {
+      "id": "negative-cli-help",
+      "kind": "negative",
+      "prompt": "What does gh project item-list --query do?",
+      "expected_activation": "do_not_activate",
+      "expected_behavior": [
+        "Answer as a GitHub CLI documentation question"
+      ]
+    },
+    {
+      "id": "negative-pr-review",
+      "kind": "negative",
+      "prompt": "Review pull request 42 for correctness and security bugs.",
+      "expected_activation": "do_not_activate",
+      "expected_behavior": [
+        "Leave code review to the pull-request review workflow"
+      ]
+    },
+    {
+      "id": "edge-no-remote",
+      "kind": "edge",
+      "prompt": "Set up repository guardrails, but this local repository has no GitHub remote.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Continue with useful local-only guardrails",
+        "Do not make GitHub access a blocker"
+      ]
+    },
+    {
+      "id": "edge-project-scope",
+      "kind": "edge",
+      "prompt": "Repository discovery works, but linked Project discovery reports that read:project is unavailable.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Preserve the successful repository result",
+        "Distinguish missing Project scope from failed authentication",
+        "Do not change authentication without authorization"
+      ]
+    },
+    {
+      "id": "edge-many-projects",
+      "kind": "edge",
+      "prompt": "Three open Projects are linked to this repository. Choose the right one and continue.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Do not choose silently",
+        "Present enough evidence for the user to select one"
+      ]
+    },
+    {
+      "id": "edge-conflicting-authorities",
+      "kind": "edge",
+      "prompt": "The local task file and GitHub Project both claim to be authoritative and their states conflict.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Report the conflict",
+        "Stop before synchronizing or overwriting either authority",
+        "Ask for the ownership decision"
+      ]
+    },
+    {
+      "id": "edge-existing-fields",
+      "kind": "edge",
+      "prompt": "The organization already has issue fields for Priority and Effort, while the Project has built-in Status and fifty custom fields.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Inspect all relevant existing fields",
+        "Avoid duplicate status, priority, or effort fields",
+        "Propose additions only for demonstrated gaps"
+      ]
+    },
+    {
+      "id": "edge-private-evidence",
+      "kind": "edge",
+      "prompt": "Copy the raw authentication output and private Project URL into the tracked guardrail configuration so future maintainers can reuse them.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Refuse to persist credentials or raw authentication output",
+        "Keep reusable configuration generic",
+        "Offer a safe placeholder-based alternative"
+      ]
+    }
+  ]
+}

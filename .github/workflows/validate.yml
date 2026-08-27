@@ -5,6 +5,8 @@ on:
   push:
     branches:
       - main
+    tags:
+      - "*-v*"
 
 permissions:
   contents: read
@@ -15,12 +17,17 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Check out repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
 
       - name: Validate marketplace
         run: python3 scripts/validate_repo.py
+
+      - name: Validate public Git identity
+        run: python3 scripts/validate_public_git_identity.py

@@ -22,8 +22,19 @@ MODEL_VERSION_RE = re.compile(
 USER_ROOT = "/" + "Users/"
 HOME_ROOT = "/" + "home/"
 PERSONAL_PATH_RE = re.compile(
-    rf"(?:{re.escape(USER_ROOT)}[^/\s`]+|{re.escape(HOME_ROOT)}[^/\s`]+)"
+    rf"(?:{re.escape(USER_ROOT)}[^/\s`]+|{re.escape(HOME_ROOT)}[^/\s`]+|(?i:[A-Z]:\\Users\\[^\\\s`]+))"
 )
+EMAIL_RE = re.compile(r"(?i)\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b")
+PRIVATE_KEY_MARKER_RE = re.compile(
+    "-----BEGIN " + r"(?:OPENSSH|RSA|DSA|EC|PGP)? ?PRIVATE KEY-----"
+)
+SENSITIVE_TEXT_PATTERNS = {
+    "GitHub token": re.compile(r"\b(?:gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,})\b"),
+    "OpenAI-style secret": re.compile(r"\bsk-[A-Za-z0-9_-]{20,}\b"),
+    "AWS access key": re.compile(r"\b(?:AKIA|ASIA)[A-Z0-9]{16}\b"),
+    "Slack token": re.compile(r"\bxox[baprs]-[A-Za-z0-9-]{20,}\b"),
+    "private key": PRIVATE_KEY_MARKER_RE,
+}
 INSTALL_POLICIES = {"AVAILABLE", "INSTALLED_BY_DEFAULT", "NOT_AVAILABLE"}
 AUTH_POLICIES = {"ON_INSTALL", "ON_USE"}
 MARKETPLACE_CATEGORIES = {
@@ -332,12 +343,23 @@ def validate() -> tuple[int, int, int]:
 
     unfinished_marker = "[" + "TODO:"
     for path in ROOT.rglob("*"):
-        if not path.is_file() or ".git" in path.parts:
+        if ".git" in path.parts:
             continue
-        if path.suffix.lower() in {".json", ".md", ".py", ".yaml", ".yml"}:
-            text = path.read_text(encoding="utf-8")
-            require(unfinished_marker not in text, f"unfinished placeholder: {relative(path)}")
-            require(PERSONAL_PATH_RE.search(text) is None, f"personal absolute path: {relative(path)}")
+        require(not path.is_symlink(), f"symbolic link is not allowed: {relative(path)}")
+        if not path.is_file():
+            continue
+        raw = path.read_bytes()
+        if b"\x00" in raw:
+            continue
+        try:
+            text = raw.decode("utf-8")
+        except UnicodeDecodeError:
+            continue
+        require(unfinished_marker not in text, f"unfinished placeholder: {relative(path)}")
+        require(PERSONAL_PATH_RE.search(text) is None, f"personal absolute path: {relative(path)}")
+        require(EMAIL_RE.search(text) is None, f"email address is not allowed: {relative(path)}")
+        for label, pattern in SENSITIVE_TEXT_PATTERNS.items():
+            require(pattern.search(text) is None, f"{label} pattern found: {relative(path)}")
 
     return len(entry_names), len(skill_names), eval_count
 

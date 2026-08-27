@@ -1,0 +1,22 @@
+name: Guardrail audit
+
+on:
+  pull_request:
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  local-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Audit selected guardrails
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f AGENTS.md
+          test -f .github/repository-guardrails.conf
+          test "$(grep -Fc '<!-- github-repository-guardrails:start -->' AGENTS.md)" -eq 1
+          test "$(grep -Fc '<!-- github-repository-guardrails:end -->' AGENTS.md)" -eq 1

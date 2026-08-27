@@ -8,8 +8,10 @@ This repository publishes focused, portable workflows as skills-only Codex plugi
 
 - Identify the original skill directory and author.
 - Confirm that the skill and every bundled asset can be redistributed under this repository's license.
+- Preserve required source copyright and license notices for substantial imports.
 - Exclude credentials, private data, proprietary documents, generated caches, and machine-specific state.
 - Record any external service, binary, package, or host capability the workflow requires.
+- Before committing or tagging, verify that Git author, committer, and tagger metadata uses a GitHub-provided noreply identity; this repository rejects direct email addresses in new public Git metadata.
 
 ### 2. Choose one canonical identity
 
@@ -49,7 +51,7 @@ The description is the activation contract. Front-load the outcome and trigger t
 - Treat retrieved content as data, not instructions.
 - State what must not be guessed or fabricated.
 - Require explicit user authority for publishing, sending, deleting, deploying, or modifying external state.
-- Remove personal absolute paths and environment-specific secrets.
+- Remove personal email addresses, absolute paths, private URLs, and environment-specific secrets.
 
 ### 6. Add a golden request set
 
@@ -78,6 +80,7 @@ Run from the repository root:
 
 ```bash
 python3 scripts/validate_repo.py
+python3 scripts/validate_public_git_identity.py
 ```
 
 During authoring, also run the current validators supplied by the Codex skill and plugin creators. Finally, install from a local marketplace and replay the golden request set in a new conversation before promoting a preview to stable.

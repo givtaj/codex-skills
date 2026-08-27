@@ -1,0 +1,40 @@
+{
+  "name": "github-repository-guardrails",
+  "version": "0.2.0",
+  "description": "Set up, maintain, and audit repository-management guardrails that coordinate local project records with GitHub issues and Projects when selected.",
+  "author": {
+    "name": "givtaj",
+    "url": "https://github.com/givtaj"
+  },
+  "homepage": "https://github.com/givtaj/codex-skills/tree/main/plugins/github-repository-guardrails",
+  "repository": "https://github.com/givtaj/codex-skills",
+  "license": "MIT",
+  "keywords": [
+    "github",
+    "governance",
+    "project-management",
+    "repository",
+    "traceability"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "GitHub Repository Guardrails",
+    "shortDescription": "Safe repository governance and GitHub traceability",
+    "longDescription": "Inspect a repository's existing management conventions, then set up, maintain, or audit a coherent guardrail system for plans, tasks, status, reviews, GitHub issues, Projects, quality automation, delivery, and governance. Local and GitHub writes remain separately previewed and user-authorized.",
+    "developerName": "givtaj",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/givtaj/codex-skills/tree/main/plugins/github-repository-guardrails",
+    "privacyPolicyURL": "https://github.com/givtaj/codex-skills/blob/main/PRIVACY.md",
+    "defaultPrompt": [
+      "Audit this repository's management guardrails.",
+      "Set up repository records and GitHub traceability safely.",
+      "Reconcile project status across this repository and GitHub."
+    ],
+    "brandColor": "#24292F",
+    "screenshots": []
+  }
+}

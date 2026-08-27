@@ -1,0 +1,7 @@
+interface:
+  display_name: "GitHub Repository Guardrails"
+  short_description: "Maintain repository governance and GitHub traceability"
+  default_prompt: "Use $github-repository-guardrails to audit this repository's project records and GitHub traceability before proposing changes."
+
+policy:
+  allow_implicit_invocation: true

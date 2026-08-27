@@ -1,0 +1,25 @@
+name: Work item
+description: Track one scoped repository outcome
+title: ""
+body:
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Outcome
+      description: What measurable result should this work produce?
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: How will completion be verified?
+    validations:
+      required: true
+  - type: textarea
+    id: risks
+    attributes:
+      label: Risks and constraints
+      description: Record important boundaries, dependencies, and safety concerns.
+    validations:
+      required: false

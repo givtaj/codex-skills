@@ -10,6 +10,7 @@ import re
 import subprocess
 import sys
 from collections.abc import Iterator
+from datetime import date
 from pathlib import Path
 
 try:
@@ -30,7 +31,10 @@ ROOT = Path(__file__).resolve().parents[1]
 MARKETPLACE_PATH = ROOT / ".agents" / "plugins" / "marketplace.json"
 NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 SEMVER_RE = re.compile(
-    r"^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$"
+    r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)"
+    r"(?:-((?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)"
+    r"(?:\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*))?"
+    r"(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$"
 )
 HEX_COLOR_RE = re.compile(r"^#[0-9A-Fa-f]{6}$")
 OBJECT_ID_BYTES_RE = re.compile(rb"^[0-9a-f]{40}(?:[0-9a-f]{24})?$")
@@ -182,6 +186,57 @@ ALLOWED_MARKETPLACE_INTERFACE_FIELDS = {"displayName"}
 ALLOWED_MARKETPLACE_ENTRY_FIELDS = {"name", "source", "policy", "category"}
 ALLOWED_MARKETPLACE_SOURCE_FIELDS = {"source", "path"}
 ALLOWED_MARKETPLACE_POLICY_FIELDS = {"installation", "authentication", "products"}
+EVAL_RESULT_KEYS = {
+    "schema_version",
+    "skill",
+    "plugin_version",
+    "date",
+    "scope",
+    "status",
+    "checks",
+    "behavioral_replay",
+}
+EVAL_RESULT_SCOPES = {"structural", "behavioral"}
+EVAL_RESULT_STATUSES = {"passed", "partial", "failed"}
+STRUCTURAL_REPLAY_KEYS = {"status", "reason"}
+BEHAVIORAL_REPLAY_BASE_KEYS = {"status", "host", "case_ids"}
+BEHAVIORAL_REPLAY_REASON_KEYS = BEHAVIORAL_REPLAY_BASE_KEYS | {"reason"}
+RELEASE_STRUCTURAL_RESULT_KEYS = EVAL_RESULT_KEYS | {
+    "tested_artifact",
+    "public_candidate_verification",
+}
+RELEASE_SMOKE_RESULT_KEYS = RELEASE_STRUCTURAL_RESULT_KEYS | {"result_context"}
+RELEASE_SCOPE_RE = re.compile(r"^[a-z0-9]+(?:[-.][a-z0-9]+)*$")
+COMMIT_SHA_RE = re.compile(r"^[0-9a-f]{40}(?:[0-9a-f]{24})?$")
+PUBLIC_REF_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]{0,199}$")
+RELEASE_ARTIFACT_KEYS = {
+    "release_state",
+    "plugin_version",
+    "candidate_ref",
+    "commit_sha",
+    "repository_url",
+    "note",
+}
+RELEASE_SMOKE_ARTIFACT_KEYS = RELEASE_ARTIFACT_KEYS | {"codex_cli_version"}
+RELEASE_CANDIDATE_KEYS = {
+    "status",
+    "candidate_ref",
+    "commit_sha",
+    "repository_url",
+    "codex_cli_version",
+    "github_actions_run_url",
+    "note",
+}
+RELEASE_SMOKE_CANDIDATE_KEYS = RELEASE_CANDIDATE_KEYS | {
+    "plugin_version",
+    "passed_checks",
+}
+RELEASE_SMOKE_REPLAY_KEYS = {"status", "passed", "pending", "note"}
+RELEASE_STRUCTURAL_REPLAY_KEYS = {"status", "result"}
+SYNTHETIC_MERGE_ENV = "VALIDATION_SYNTHETIC_MERGE_SHA"
+CONTRIBUTION_BASE_ENV = "VALIDATION_CONTRIBUTION_BASE_SHA"
+CONTRIBUTION_HEAD_ENV = "VALIDATION_CONTRIBUTION_HEAD_SHA"
+PUBLISHED_REF_NAMESPACE = "refs/validation/origin"
 
 
 class ValidationError(Exception):
@@ -404,6 +459,98 @@ def git_bytes(
     return result.stdout
 
 
+def validated_unpublished_merge_commit(root: Path) -> str | None:
+    """Return the exact CI merge commit whose metadata may be unpublished.
+
+    The exception is available only when all three trusted workflow values are
+    present, identify the checked-out two-parent merge, and are anchored in the
+    separately fetched public-ref namespace. The merge itself must not be
+    reachable from that namespace.
+    """
+
+    merge_sha = os.environ.get(SYNTHETIC_MERGE_ENV)
+    base_sha = os.environ.get(CONTRIBUTION_BASE_ENV)
+    head_sha = os.environ.get(CONTRIBUTION_HEAD_ENV)
+    supplied = (merge_sha, base_sha, head_sha)
+    if not any(value is not None for value in supplied):
+        return None
+    require(
+        all(
+            isinstance(value, str)
+            and COMMIT_SHA_RE.fullmatch(value) is not None
+            for value in supplied
+        ),
+        "pull-request merge validation requires three full Git object IDs",
+    )
+    assert merge_sha is not None and base_sha is not None and head_sha is not None
+    require(base_sha != head_sha, "pull-request base and head commits must differ")
+
+    for label, commit_sha in (
+        ("merge", merge_sha),
+        ("base", base_sha),
+        ("head", head_sha),
+    ):
+        resolved = git_bytes(
+            root,
+            "rev-parse",
+            "--verify",
+            f"{commit_sha}^{{commit}}",
+            allow_failure=True,
+        ).strip()
+        require(
+            resolved == commit_sha.encode("ascii"),
+            f"pull-request {label} object does not resolve to the declared commit",
+        )
+
+    checked_out = git_bytes(root, "rev-parse", "--verify", "HEAD^{commit}").strip()
+    require(
+        checked_out == merge_sha.encode("ascii"),
+        "declared pull-request merge is not the checked-out commit",
+    )
+    parents = git_bytes(root, "show", "-s", "--format=%P", merge_sha).split()
+    require(
+        len(parents) == 2
+        and set(parents) == {base_sha.encode("ascii"), head_sha.encode("ascii")},
+        "declared pull-request merge parents do not match the contribution",
+    )
+
+    published_refs = git_bytes(
+        root,
+        "for-each-ref",
+        "--format=%(refname)",
+        PUBLISHED_REF_NAMESPACE,
+    ).splitlines()
+    require(
+        bool(published_refs),
+        "pull-request merge validation requires the fetched public-ref namespace",
+    )
+    containing_base_refs = git_bytes(
+        root,
+        "for-each-ref",
+        "--format=%(refname)",
+        "--contains",
+        base_sha,
+        PUBLISHED_REF_NAMESPACE,
+    ).splitlines()
+    require(
+        bool(containing_base_refs),
+        "pull-request base commit is not anchored in fetched public refs",
+    )
+    merge_refs = git_bytes(
+        root,
+        "for-each-ref",
+        "--format=%(refname)",
+        "--contains",
+        merge_sha,
+        PUBLISHED_REF_NAMESPACE,
+    ).splitlines()
+    require(
+        not merge_refs,
+        "declared pull-request merge is reachable from a fetched public ref",
+    )
+    return merge_sha
+
+
 def split_git_object(raw: bytes) -> tuple[bytes, bytes]:
     headers, separator, body = raw.partition(b"\n\n")
     if not separator:
@@ -566,6 +713,7 @@ def validate_public_git_history(root: Path) -> None:
         shallow == b"false",
         "Git history is shallow; fetch full history and tags before public-content validation",
     )
+    unpublished_merge = validated_unpublished_merge_commit(root)
     refs_raw = git_bytes(
         root,
         "for-each-ref",
@@ -619,7 +767,10 @@ def validate_public_git_history(root: Path) -> None:
         inspect_public_bytes(
             headers,
             f"commit metadata {commit_id[:12]}",
-            allow_all_emails=commit_id in LEGACY_COMMIT_EXEMPTIONS,
+            allow_all_emails=(
+                commit_id in LEGACY_COMMIT_EXEMPTIONS
+                or commit_id == unpublished_merge
+            ),
             check_unfinished=False,
         )
         inspect_public_bytes(message, f"commit message {commit_id[:12]}")
@@ -706,7 +857,496 @@ def validate_agent_metadata(skill_root: Path) -> None:
     )
 
 
-def validate_eval(plugin_dir: Path, skill_name: str) -> None:
+def require_exact_keys(payload: dict, expected: set[str], label: str) -> None:
+    actual = set(payload)
+    missing = expected - actual
+    unknown = actual - expected
+    require(
+        not missing and not unknown,
+        f"{label}: keys differ; missing={sorted(missing)}, unknown={sorted(unknown)}",
+    )
+
+
+def validate_nonempty_string(value: object, label: str) -> str:
+    require(isinstance(value, str) and value.strip(), f"{label}: must be a non-empty string")
+    return value.strip()
+
+
+def validate_unique_string_list(value: object, label: str) -> list[str]:
+    require(
+        isinstance(value, list)
+        and value
+        and all(isinstance(item, str) and item.strip() for item in value),
+        f"{label}: must be a non-empty string array",
+    )
+    normalized = [item.strip() for item in value]
+    require(len(normalized) == len(set(normalized)), f"{label}: entries must be unique")
+    return normalized
+
+
+def validate_public_ref(value: object, label: str) -> str:
+    ref = validate_nonempty_string(value, label)
+    require(
+        PUBLIC_REF_RE.fullmatch(ref) is not None
+        and ".." not in ref
+        and not ref.endswith("/")
+        and "//" not in ref,
+        f"{label}: must be a safe public ref name",
+    )
+    return ref
+
+
+def validate_release_artifact(
+    artifact: object,
+    result_path: Path,
+    result_version: str,
+    result_kind: str,
+) -> dict:
+    label = f"{relative(result_path)} tested_artifact"
+    require(isinstance(artifact, dict), f"{label}: must be an object")
+    expected_keys = (
+        RELEASE_SMOKE_ARTIFACT_KEYS
+        if result_kind == "release-smoke"
+        else RELEASE_ARTIFACT_KEYS
+    )
+    require_exact_keys(artifact, expected_keys, label)
+
+    expected_state = "published" if result_kind == "release-smoke" else "public-release-candidate"
+    require(
+        artifact["release_state"] == expected_state,
+        f"{label}: release_state must be {expected_state!r}",
+    )
+    artifact_version = artifact["plugin_version"]
+    require(
+        isinstance(artifact_version, str) and SEMVER_RE.fullmatch(artifact_version) is not None,
+        f"{label}: plugin_version must be strict semver",
+    )
+    if result_kind == "release-structural":
+        require(
+            artifact_version == result_version,
+            f"{label}: plugin_version must match the result version",
+        )
+    validate_public_ref(artifact["candidate_ref"], f"{label}.candidate_ref")
+    require(
+        isinstance(artifact["commit_sha"], str)
+        and COMMIT_SHA_RE.fullmatch(artifact["commit_sha"]) is not None,
+        f"{label}.commit_sha: must be a full lowercase Git object id",
+    )
+    require_https_url(artifact["repository_url"], f"{label}.repository_url")
+    validate_nonempty_string(artifact["note"], f"{label}.note")
+    if result_kind == "release-smoke":
+        cli_version = artifact["codex_cli_version"]
+        require(
+            cli_version is None
+            or (isinstance(cli_version, str) and SEMVER_RE.fullmatch(cli_version) is not None),
+            f"{label}.codex_cli_version: must be null or strict semver",
+        )
+    return artifact
+
+
+def validate_public_candidate(
+    verification: object,
+    result_path: Path,
+    result_version: str,
+    result_kind: str,
+    artifact: dict,
+) -> None:
+    label = f"{relative(result_path)} public_candidate_verification"
+    require(isinstance(verification, dict), f"{label}: must be an object")
+    expected_keys = (
+        RELEASE_SMOKE_CANDIDATE_KEYS
+        if result_kind == "release-smoke"
+        else RELEASE_CANDIDATE_KEYS
+    )
+    require_exact_keys(verification, expected_keys, label)
+    require(verification["status"] == "passed", f"{label}: status must be passed")
+    if result_kind == "release-smoke":
+        require(
+            verification["plugin_version"] == result_version,
+            f"{label}: plugin_version must match the result version",
+        )
+        validate_unique_string_list(verification["passed_checks"], f"{label}.passed_checks")
+    candidate_ref = validate_public_ref(
+        verification["candidate_ref"], f"{label}.candidate_ref"
+    )
+    commit_sha = verification["commit_sha"]
+    require(
+        isinstance(commit_sha, str) and COMMIT_SHA_RE.fullmatch(commit_sha) is not None,
+        f"{label}.commit_sha: must be a full lowercase Git object id",
+    )
+    require_https_url(verification["repository_url"], f"{label}.repository_url")
+    cli_version = verification["codex_cli_version"]
+    require(
+        isinstance(cli_version, str) and SEMVER_RE.fullmatch(cli_version) is not None,
+        f"{label}.codex_cli_version: must be strict semver",
+    )
+    require_https_url(
+        verification["github_actions_run_url"],
+        f"{label}.github_actions_run_url",
+    )
+    validate_nonempty_string(verification["note"], f"{label}.note")
+
+    if artifact["release_state"] == "public-release-candidate":
+        require(
+            candidate_ref == artifact["candidate_ref"]
+            and commit_sha == artifact["commit_sha"]
+            and verification["repository_url"] == artifact["repository_url"],
+            f"{label}: candidate identity must match tested_artifact",
+        )
+
+
+def trusted_candidate_tag_namespace(root: Path) -> str:
+    """Prefer the CI-fetched origin tag namespace when it is available."""
+
+    fetched_namespace = f"{PUBLISHED_REF_NAMESPACE}/tags"
+    fetched_tags = git_bytes(
+        root,
+        "for-each-ref",
+        "--format=%(refname)",
+        fetched_namespace,
+    ).splitlines()
+    return fetched_namespace if fetched_tags else "refs/tags"
+
+
+def validate_candidate_tag(
+    root: Path,
+    candidate_ref: str,
+    commit_sha: str,
+    label: str,
+) -> None:
+    namespace = trusted_candidate_tag_namespace(root)
+    full_ref = f"{namespace}/{candidate_ref}"
+    resolved = git_bytes(
+        root,
+        "rev-parse",
+        "--verify",
+        f"{full_ref}^{{commit}}",
+        allow_failure=True,
+    ).strip()
+    require(
+        resolved == commit_sha.encode("ascii"),
+        f"{label}: candidate tag is missing or resolves to a different commit",
+    )
+
+
+def validate_release_evidence_pairs(
+    plugin_dir: Path,
+    result_files: list[Path],
+) -> None:
+    pairs: dict[tuple[str, str], dict[str, tuple[Path, dict]]] = {}
+    for result_path in result_files:
+        result = load_json(result_path)
+        result_keys = set(result)
+        if result_keys == RELEASE_STRUCTURAL_RESULT_KEYS:
+            result_kind = "structural"
+        elif result_keys == RELEASE_SMOKE_RESULT_KEYS:
+            result_kind = "smoke"
+        else:
+            continue
+        key = (str(result["date"]), str(result["plugin_version"]))
+        pair = pairs.setdefault(key, {})
+        require(
+            result_kind not in pair,
+            f"{relative(plugin_dir / 'evals')}: duplicate {result_kind} release evidence",
+        )
+        pair[result_kind] = (result_path, result)
+
+    for (result_date, result_version), pair in pairs.items():
+        require(
+            set(pair) == {"structural", "smoke"},
+            f"{relative(plugin_dir / 'evals')}: release evidence for "
+            f"{result_date} v{result_version} must include structural and smoke results",
+        )
+        structural_path, structural = pair["structural"]
+        smoke_path, smoke = pair["smoke"]
+        structural_candidate = structural["public_candidate_verification"]
+        smoke_candidate = smoke["public_candidate_verification"]
+        identity_fields = ("candidate_ref", "commit_sha", "repository_url")
+        require(
+            all(
+                structural_candidate[field] == smoke_candidate[field]
+                for field in identity_fields
+            ),
+            f"{relative(structural_path)} and {relative(smoke_path)}: "
+            "paired release evidence identifies different public candidates",
+        )
+        validate_candidate_tag(
+            ROOT,
+            str(structural_candidate["candidate_ref"]),
+            str(structural_candidate["commit_sha"]),
+            f"{relative(structural_path)} public_candidate_verification",
+        )
+
+
+def validate_eval_result(
+    result_path: Path,
+    skill_name: str,
+    golden_case_ids: set[str],
+    current_plugin_version: str | None = None,
+) -> str:
+    result = load_json(result_path)
+    result_keys = set(result)
+    if result_keys == EVAL_RESULT_KEYS:
+        result_kind = "canonical"
+    elif result_keys == RELEASE_STRUCTURAL_RESULT_KEYS:
+        result_kind = "release-structural"
+    elif result_keys == RELEASE_SMOKE_RESULT_KEYS:
+        result_kind = "release-smoke"
+    else:
+        expected_shapes = (
+            EVAL_RESULT_KEYS,
+            RELEASE_STRUCTURAL_RESULT_KEYS,
+            RELEASE_SMOKE_RESULT_KEYS,
+        )
+        closest = min(expected_shapes, key=lambda shape: len(shape ^ result_keys))
+        missing_keys = closest - result_keys
+        unknown_keys = result_keys - closest
+        raise ValidationError(
+            f"{relative(result_path)}: evaluation result keys differ; "
+            f"missing={sorted(missing_keys)}, unknown={sorted(unknown_keys)}"
+        )
+    require(
+        EVAL_RESULT_KEYS <= result_keys,
+        f"{relative(result_path)}: evaluation result is missing core keys",
+    )
+
+    require(
+        type(result["schema_version"]) is int and result["schema_version"] == 1,
+        f"{relative(result_path)}: unsupported schema",
+    )
+    require(
+        result["skill"] == skill_name,
+        f"{relative(result_path)}: skill mismatch",
+    )
+
+    result_version = result["plugin_version"]
+    require(
+        isinstance(result_version, str)
+        and SEMVER_RE.fullmatch(result_version) is not None,
+        f"{relative(result_path)}: plugin_version must be strict semver",
+    )
+
+    result_date = result["date"]
+    require(
+        isinstance(result_date, str)
+        and re.fullmatch(r"\d{4}-\d{2}-\d{2}", result_date) is not None,
+        f"{relative(result_path)}: date must use YYYY-MM-DD",
+    )
+    try:
+        date.fromisoformat(result_date)
+    except ValueError as exc:
+        raise ValidationError(
+            f"{relative(result_path)}: date must be a valid calendar date"
+        ) from exc
+    result_scope = result["scope"]
+    if result_kind == "canonical":
+        require(
+            isinstance(result_scope, str) and result_scope in EVAL_RESULT_SCOPES,
+            f"{relative(result_path)}: invalid scope",
+        )
+        filename_prefix = f"{result_date}-{result_scope}"
+        require(
+            result_path.stem == filename_prefix
+            or result_path.stem.startswith(f"{filename_prefix}-"),
+            f"{relative(result_path)}: filename must begin with date and scope",
+        )
+    else:
+        require(
+            isinstance(result_scope, str)
+            and RELEASE_SCOPE_RE.fullmatch(result_scope) is not None,
+            f"{relative(result_path)}: release evidence scope must be lower-case kebab-case",
+        )
+        required_scope_terms = (
+            {"candidate", "smoke"}
+            if result_kind == "release-smoke"
+            else {"structural", "regression"}
+        )
+        require(
+            required_scope_terms <= set(result_scope.split("-")),
+            f"{relative(result_path)}: release evidence scope does not match its result kind",
+        )
+        filename_kind = "codex-cli" if result_kind == "release-smoke" else "structural"
+        require(
+            result_path.stem == f"{result_date}-v{result_version}-{filename_kind}",
+            f"{relative(result_path)}: filename must bind date, plugin version, and result kind",
+        )
+
+    result_status = result["status"]
+    require(
+        isinstance(result_status, str) and result_status in EVAL_RESULT_STATUSES,
+        f"{relative(result_path)}: invalid status",
+    )
+
+    validate_unique_string_list(result["checks"], f"{relative(result_path)} checks")
+
+    if result_kind != "canonical":
+        if result_kind == "release-smoke":
+            validate_nonempty_string(
+                result["result_context"], f"{relative(result_path)} result_context"
+            )
+        artifact = validate_release_artifact(
+            result["tested_artifact"], result_path, result_version, result_kind
+        )
+        validate_public_candidate(
+            result["public_candidate_verification"],
+            result_path,
+            result_version,
+            result_kind,
+            artifact,
+        )
+
+    replay = result["behavioral_replay"]
+    require(
+        isinstance(replay, dict),
+        f"{relative(result_path)}: behavioral_replay must be an object",
+    )
+    replay_keys = set(replay)
+
+    if result_kind == "release-smoke":
+        require_exact_keys(replay, RELEASE_SMOKE_REPLAY_KEYS, f"{relative(result_path)} replay")
+        require(
+            result_status == "partial" and replay["status"] == "partial",
+            f"{relative(result_path)}: release smoke without golden case IDs must remain partial",
+        )
+        passed = validate_unique_string_list(
+            replay["passed"], f"{relative(result_path)} replay.passed"
+        )
+        pending = validate_unique_string_list(
+            replay["pending"], f"{relative(result_path)} replay.pending"
+        )
+        require(
+            not set(passed) & set(pending),
+            f"{relative(result_path)}: replay passed and pending claims must be disjoint",
+        )
+        validate_nonempty_string(replay["note"], f"{relative(result_path)} replay.note")
+        return result_version
+
+    if result_kind == "release-structural":
+        require_exact_keys(
+            replay,
+            RELEASE_STRUCTURAL_REPLAY_KEYS,
+            f"{relative(result_path)} replay",
+        )
+        require(
+            result_status == "passed" and replay["status"] == "partial",
+            f"{relative(result_path)}: structural release evidence must pass while "
+            "delegated behavioral replay remains partial",
+        )
+        expected_result = f"{result_date}-v{result_version}-codex-cli.json"
+        require(
+            replay["result"] == expected_result
+            and (result_path.parent / expected_result).is_file(),
+            f"{relative(result_path)}: replay must reference the matching smoke result",
+        )
+        return result_version
+
+    if result_scope == "structural":
+        require(
+            replay_keys == STRUCTURAL_REPLAY_KEYS,
+            f"{relative(result_path)}: structural replay metadata must contain "
+            "exactly status and reason",
+        )
+        require(
+            replay["status"] == "pending",
+            f"{relative(result_path)}: structural replay status must be pending",
+        )
+        require(
+            isinstance(replay["reason"], str) and replay["reason"].strip(),
+            f"{relative(result_path)}: structural replay reason must be non-empty",
+        )
+        return result_version
+
+    require(
+        "status" in replay_keys,
+        f"{relative(result_path)}: behavioral replay status is missing",
+    )
+    replay_status = replay["status"]
+    require(
+        isinstance(replay_status, str) and replay_status in EVAL_RESULT_STATUSES,
+        f"{relative(result_path)}: behavioral replay status must be non-pending",
+    )
+    expected_replay_keys = (
+        BEHAVIORAL_REPLAY_BASE_KEYS
+        if replay_status == "passed"
+        else BEHAVIORAL_REPLAY_REASON_KEYS
+    )
+    require(
+        replay_keys == expected_replay_keys,
+        f"{relative(result_path)}: behavioral replay metadata has an invalid shape",
+    )
+    require(
+        isinstance(replay["host"], str) and replay["host"].strip(),
+        f"{relative(result_path)}: behavioral replay host must be non-empty",
+    )
+    replay_case_ids = replay["case_ids"]
+    require(
+        isinstance(replay_case_ids, list)
+        and replay_case_ids
+        and all(
+            isinstance(case_id, str) and NAME_RE.fullmatch(case_id) is not None
+            for case_id in replay_case_ids
+        ),
+        f"{relative(result_path)}: behavioral replay case_ids must be valid golden case IDs",
+    )
+    require(
+        len(replay_case_ids) == len(set(replay_case_ids)),
+        f"{relative(result_path)}: behavioral replay case_ids must be unique",
+    )
+    validates_current_cases = (
+        current_plugin_version is None or result_version == current_plugin_version
+    )
+    if validates_current_cases:
+        require(
+            set(replay_case_ids) <= golden_case_ids,
+            f"{relative(result_path)}: behavioral replay contains an unknown case id",
+        )
+        if replay_status == "passed":
+            require(
+                set(replay_case_ids) == golden_case_ids,
+                f"{relative(result_path)}: passed replay must cover every golden case",
+            )
+    if replay_status != "passed":
+        require(
+            isinstance(replay["reason"], str) and replay["reason"].strip(),
+            f"{relative(result_path)}: partial or failed replay requires a reason",
+        )
+    require(
+        result_status == replay_status,
+        f"{relative(result_path)}: behavioral result and replay statuses differ",
+    )
+    return result_version
+
+
+def validate_eval_results(
+    plugin_dir: Path,
+    skill_name: str,
+    plugin_version: str,
+    golden_case_ids: set[str],
+) -> None:
+    result_files = sorted((plugin_dir / "evals" / "results").glob("*.json"))
+    require(
+        result_files,
+        f"{relative(plugin_dir / 'evals')}: missing dated validation result",
+    )
+    current_version_results = 0
+    for result_path in result_files:
+        result_version = validate_eval_result(
+            result_path,
+            skill_name,
+            golden_case_ids,
+            plugin_version,
+        )
+        if result_version == plugin_version:
+            current_version_results += 1
+    validate_release_evidence_pairs(plugin_dir, result_files)
+    require(
+        current_version_results > 0,
+        f"{relative(plugin_dir / 'evals')}: "
+        f"no validation result for plugin version {plugin_version}",
+    )
+
+
+def validate_eval(plugin_dir: Path, skill_name: str, plugin_version: str) -> None:
     eval_path = plugin_dir / "evals" / f"{skill_name}.json"
     payload = load_json(eval_path)
     require(payload.get("schema_version") == 1, f"{relative(eval_path)}: unsupported schema")
@@ -747,16 +1387,7 @@ def validate_eval(plugin_dir: Path, skill_name: str) -> None:
 
     missing = REQUIRED_EVAL_KINDS - kinds
     require(not missing, f"{relative(eval_path)}: missing case kinds {sorted(missing)}")
-
-    result_files = sorted((plugin_dir / "evals" / "results").glob("*.json"))
-    require(result_files, f"{relative(eval_path)}: missing dated validation result")
-    for result_path in result_files:
-        result = load_json(result_path)
-        require(result.get("skill") == skill_name, f"{relative(result_path)}: skill mismatch")
-        require(
-            result.get("status") in {"passed", "failed", "partial"},
-            f"{relative(result_path)}: invalid status",
-        )
+    validate_eval_results(plugin_dir, skill_name, plugin_version, ids)
 
 
 def validate_plugin_interface(manifest_path: Path, manifest: dict, category: str) -> None:
@@ -816,7 +1447,12 @@ def validate_plugin_interface(manifest_path: Path, manifest: dict, category: str
         )
 
 
-def validate_skill(plugin_dir: Path, skill_md: Path, skill_names: set[str]) -> str:
+def validate_skill(
+    plugin_dir: Path,
+    skill_md: Path,
+    skill_names: set[str],
+    plugin_version: str,
+) -> str:
     metadata = frontmatter(skill_md)
     skill_name = metadata.get("name")
     description = metadata.get("description", "").strip()
@@ -844,7 +1480,7 @@ def validate_skill(plugin_dir: Path, skill_md: Path, skill_names: set[str]) -> s
         require(target.is_file(), f"{relative(skill_md)}: missing referenced file {reference}")
 
     validate_agent_metadata(skill_md.parent)
-    validate_eval(plugin_dir, skill_name or "")
+    validate_eval(plugin_dir, skill_name or "", plugin_version)
     skill_names.add(skill_name or "")
     return skill_name or ""
 
@@ -967,7 +1603,7 @@ def validate() -> tuple[int, int, int]:
         skill_files = sorted((plugin_dir / "skills").glob("*/SKILL.md"))
         require(skill_files, f"{name}: plugin contains no skills")
         for skill_md in skill_files:
-            skill_name = validate_skill(plugin_dir, skill_md, skill_names)
+            skill_name = validate_skill(plugin_dir, skill_md, skill_names, version)
             if len(skill_files) == 1:
                 require(skill_name == name, f"{name}: one-skill plugin must share the canonical skill name")
             eval_count += 1

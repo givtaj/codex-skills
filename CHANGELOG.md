@@ -7,6 +7,7 @@ All notable changes to published plugins are recorded here. Versions follow sema
 ### Added
 
 - Repository-wide canonical naming, durable-language, public-safety, and golden-request import gates.
+- Exact evaluation-result schema validation and mutation-focused tests for plugin versions, dates, checks, and behavioral-replay metadata.
 
 ## github-repository-guardrails 0.2.1 - 2026-08-27
 

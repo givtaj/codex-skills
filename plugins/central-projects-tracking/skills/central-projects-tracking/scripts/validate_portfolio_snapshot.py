@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import ipaddress
 import json
 import os
 import re
@@ -19,6 +18,7 @@ from typing import Any
 from collect_portfolio_facts import (
     EVIDENCE_ID_RE,
     compute_source_digest,
+    public_text_violation_kinds,
     valid_project_id,
     validate_projects_root,
     within,
@@ -31,55 +31,6 @@ MAX_SNAPSHOT_BYTES = 512 * 1024
 MAX_SANITIZED_STRING_CHARS = 4096
 DIGEST_RE = re.compile(r"^[a-f0-9]{64}$")
 TIMESTAMP_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
-EMAIL_RE = re.compile(r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}")
-URL_RE = re.compile(r"\b[a-z][a-z0-9+.-]*://", re.IGNORECASE)
-FILE_URI_RE = re.compile(
-    r"(?i)\bfile:(?://)?(?:/|[A-Za-z]:[\\/])[^\s]*"
-)
-GIT_OBJECT_RE = re.compile(r"\b[a-f0-9]{40,64}\b", re.IGNORECASE)
-IPV4_RE = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
-ABSOLUTE_PATH_RE = re.compile(
-    r"(?<![A-Za-z0-9._~-])(?:~[/\\][^\s]*|/(?:[^/\s]+(?:/[^/\s]*)*)?|[A-Za-z]:[\\/][^\s]+)"
-)
-HTML_RE = re.compile(r"<[^>]+>")
-MARKDOWN_RE = re.compile(
-    r"(?m)(?:^#{1,6}\s|^>\s|^(?:[-*+]|\d+\.)\s|`{1,3}|\*\*|__|!\[|\[[^\]\r\n]+\]\([^)]+\))"
-)
-HOSTNAME_RE = re.compile(
-    r"(?i)\b(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}(?::\d{1,5})?(?:/[^\s]*)?"
-)
-HOST_PORT_RE = re.compile(
-    r"(?i)\b(?=[a-z0-9-]*[a-z])[a-z0-9-]{1,63}:\d{2,5}\b"
-)
-UNC_PATH_RE = re.compile(r"(?:\\\\|//)[A-Za-z0-9._-]+[\\/][^\s]+")
-ENV_ASSIGNMENT_RE = re.compile(
-    r"(?i)(?:^|\s)(?:export\s+)?[A-Z_][A-Z0-9_]{1,}\s*=\s*[^\s]+"
-)
-FILENAME_RE = re.compile(
-    r"(?i)\b[A-Za-z0-9][A-Za-z0-9_-]{0,100}\.(?:bak|csv|db|diff|env|go|java|js|json|jsonl|key|log|md|ndjson|patch|pem|php|py|rb|rs|sh|sqlite|toml|trace|ts|tsv|txt|yaml|yml)\b"
-)
-RAW_ARTIFACT_RE = re.compile(
-    r"(?im)(?:^diff --git\s|^@@\s|^---\s+\S|^\+\+\+\s+\S|\brefs/(?:heads|remotes)/|\bcommit\s+[a-f0-9]{7,}\b)"
-)
-IPV6_CANDIDATE_RE = re.compile(r"(?<![A-Za-z0-9])\[?[0-9A-Fa-f:]{2,}\]?(?![A-Za-z0-9])")
-SECRET_PATTERNS = (
-    re.compile(r"(?i)(api[_-]?key|secret|token|password)\s*[:=]\s*\S+"),
-    re.compile(r"\bsk-[A-Za-z0-9_-]{20,}\b"),
-    re.compile(r"\bgh[pousr]_[A-Za-z0-9_]{20,}\b"),
-    re.compile(r"\bgithub_pat_[A-Za-z0-9_]{20,}\b"),
-    re.compile(r"\bdop_v1_[A-Za-z0-9]{20,}\b"),
-    re.compile(r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b"),
-    re.compile(r"\bAIza[0-9A-Za-z_-]{35}\b"),
-    re.compile(r"\bxox[baprs]-[A-Za-z0-9-]{10,}\b"),
-    re.compile(r"\bglpat-[A-Za-z0-9_-]{20,}\b"),
-    re.compile(r"\bnpm_[A-Za-z0-9]{20,}\b"),
-    re.compile(r"\bpypi-[A-Za-z0-9_-]{20,}\b"),
-    re.compile(r"\b(?:sk|rk)_live_[A-Za-z0-9]{20,}\b"),
-    re.compile(r"(?i)\bAuthorization\s*:\s*(?:Basic|Bearer)\s+\S+"),
-    re.compile(r"\bssh-(?:rsa|ed25519)\s+[A-Za-z0-9+/=]{40,}"),
-    re.compile(r"\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b"),
-    re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----"),
-)
 
 FACT_ROOT_KEYS = {
     "schemaVersion",
@@ -183,6 +134,8 @@ ACTIVITY_ID_RE = re.compile(
 MAX_ACTIVITY_ID_CHARS = 161
 BRANCH_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]{0,159}$")
 EVIDENCE_STATES = {"present", "missing", "rejected"}
+NO_RISK_SENTINEL = "No current supported risk."
+NO_ACTION_SENTINEL = "No action is required."
 
 
 class Validator:
@@ -241,19 +194,6 @@ def walk_strings(value: Any, location: str = "root") -> list[tuple[str, str]]:
     return found
 
 
-def contains_ipv6(value: str) -> bool:
-    for match in IPV6_CANDIDATE_RE.finditer(value):
-        candidate = match.group(0).strip("[]")
-        if ":" not in candidate:
-            continue
-        try:
-            if ipaddress.ip_address(candidate).version == 6:
-                return True
-        except ValueError:
-            continue
-    return False
-
-
 def append_sanitization_errors(v: Validator, value: Any, root: str) -> None:
     for location, text in walk_strings(value, root):
         if len(text) > MAX_SANITIZED_STRING_CHARS:
@@ -282,31 +222,14 @@ def append_sanitization_errors(v: Validator, value: Any, root: str) -> None:
             and len(text) <= MAX_ACTIVITY_ID_CHARS
             and bool(ACTIVITY_ID_RE.fullmatch(text))
         )
-        if (
-            not is_structured_time
-            and (
-            ("@" in text and EMAIL_RE.search(text))
-            or URL_RE.search(text)
-            or FILE_URI_RE.search(text)
-            or (not is_digest and GIT_OBJECT_RE.search(text))
-            or IPV4_RE.search(text)
-            or contains_ipv6(text)
-            or ABSOLUTE_PATH_RE.search(text)
-            or UNC_PATH_RE.search(text)
-            or HOSTNAME_RE.search(text)
-            or (
-                not is_activity_id
-                and ":" in text
-                and HOST_PORT_RE.search(text)
-            )
-            or HTML_RE.search(text)
-            or MARKDOWN_RE.search(text)
-            or ENV_ASSIGNMENT_RE.search(text)
-            or (not is_structured_id and FILENAME_RE.search(text))
-            or RAW_ARTIFACT_RE.search(text)
-            or any(pattern.search(text) for pattern in SECRET_PATTERNS)
-            )
-        ):
+        violations = public_text_violation_kinds(text)
+        if is_digest:
+            violations.discard("git-object")
+        if is_structured_id:
+            violations.discard("filename")
+        if is_activity_id:
+            violations.discard("host-port")
+        if not is_structured_time and violations:
             v.errors.append(location + ":unsafe-string")
 
 
@@ -705,6 +628,7 @@ def validate_last_activity(
     prefix: str,
     generated: datetime | None,
     commit_dates: set[str] | None = None,
+    present_evidence: bool | None = None,
 ) -> None:
     v.require(isinstance(value, dict), prefix + ":object")
     if not isinstance(value, dict):
@@ -726,6 +650,8 @@ def validate_last_activity(
         v.require(observed <= generated.date(), prefix + ":future")
     if kind == "commit" and observed is not None and commit_dates is not None:
         v.require(observed_value in commit_dates, prefix + ":commit-evidence")
+    if kind in {"evidence", "build", "study"} and present_evidence is not None:
+        v.require(present_evidence, prefix + ":allowlisted-evidence")
 
 
 def repository_commit_dates(value: Any) -> set[str]:
@@ -746,6 +672,16 @@ def repository_commit_dates(value: Any) -> set[str]:
     return observed
 
 
+def project_has_present_evidence(value: Any) -> bool:
+    """Return whether current private facts captured allowlisted evidence."""
+    if not isinstance(value, dict) or not isinstance(value.get("evidence"), list):
+        return False
+    return any(
+        isinstance(item, dict) and item.get("status") == "present"
+        for item in value["evidence"]
+    )
+
+
 def validate_activity_records(
     v: Validator,
     value: Any,
@@ -753,6 +689,7 @@ def validate_activity_records(
     generated: datetime | None,
     prefix: str,
     commit_dates_by_project: dict[str, set[str]] | None = None,
+    present_evidence_by_project: dict[str, bool] | None = None,
 ) -> None:
     v.require(isinstance(value, list) and len(value) <= 8, prefix + ":list")
     if not isinstance(value, list):
@@ -814,6 +751,16 @@ def validate_activity_records(
             v.require(
                 item.get("on") in commit_dates_by_project.get(project_id, set()),
                 item_prefix + ":commit-evidence",
+            )
+        if (
+            activity_type in {"EVIDENCE", "BUILD", "STUDY"}
+            and isinstance(project_id, str)
+            and present_evidence_by_project is not None
+            and project_id in present_evidence_by_project
+        ):
+            v.require(
+                present_evidence_by_project.get(project_id, False),
+                item_prefix + ":allowlisted-evidence",
             )
         v.require(valid_text(item.get("note"), 8, 320), item_prefix + ":note")
         if isinstance(item.get("on"), str) and isinstance(identifier, str):
@@ -906,10 +853,20 @@ def validate_previous_snapshot(previous: Any) -> list[str]:
             v.require(project.get("stage") in STAGES, prefix + ":stage")
             v.require(valid_text(project.get("health"), 1, 80), prefix + ":health")
             v.require(project.get("tone") in TONES, prefix + ":tone")
-            v.require(isinstance(project.get("attention"), bool), prefix + ":attention")
+            attention = project.get("attention")
+            v.require(isinstance(attention, bool), prefix + ":attention")
             v.require(valid_text(project.get("summary"), 8, 500), prefix + ":summary")
             v.require(valid_text(project.get("risk"), 8, 800), prefix + ":risk")
             v.require(valid_text(project.get("next"), 8, 800), prefix + ":next")
+            if attention is True:
+                v.require(
+                    project.get("risk") != NO_RISK_SENTINEL,
+                    prefix + ":attention-risk",
+                )
+                v.require(
+                    project.get("next") != NO_ACTION_SENTINEL,
+                    prefix + ":attention-next",
+                )
             v.require(valid_text(project.get("stack"), 1, 160), prefix + ":stack")
             v.require(valid_text(project.get("evidence"), 1, 220), prefix + ":evidence")
             observed = project.get("observedAt")
@@ -937,6 +894,7 @@ def validate_previous_snapshot(previous: Any) -> list[str]:
                 v.require(project.get("stage") == "Unknown", prefix + ":missing-stage")
                 v.require(project.get("health") == "Unknown", prefix + ":missing-health")
                 v.require(project.get("tone") == "neutral", prefix + ":missing-tone")
+                v.require(observed is None, prefix + ":missing-observed-at")
     v.require(len(project_ids) == len(set(project_ids)), "previous:project-ids-unique")
 
     if isinstance(coverage, dict) and all(
@@ -1133,10 +1091,20 @@ def validate_snapshot(
             v.require(project.get("stage") in STAGES, prefix + ":stage")
             v.require(valid_text(project.get("health"), 1, 80), prefix + ":health")
             v.require(project.get("tone") in TONES, prefix + ":tone")
-            v.require(isinstance(project.get("attention"), bool), prefix + ":attention")
+            attention = project.get("attention")
+            v.require(isinstance(attention, bool), prefix + ":attention")
             v.require(valid_text(project.get("summary"), 8, 500), prefix + ":summary")
             v.require(valid_text(project.get("risk"), 8, 800), prefix + ":risk")
             v.require(valid_text(project.get("next"), 8, 800), prefix + ":next")
+            if attention is True:
+                v.require(
+                    project.get("risk") != NO_RISK_SENTINEL,
+                    prefix + ":attention-risk",
+                )
+                v.require(
+                    project.get("next") != NO_ACTION_SENTINEL,
+                    prefix + ":attention-next",
+                )
             v.require(valid_text(project.get("stack"), 1, 160), prefix + ":stack")
             v.require(valid_text(project.get("evidence"), 1, 220), prefix + ":evidence")
             observed = project.get("observedAt")
@@ -1151,6 +1119,11 @@ def validate_snapshot(
                 generated,
             )
             fact_project = fact_projects.get(project_id)
+            present_evidence = (
+                project_has_present_evidence(fact_project)
+                if fact_project is not None
+                else None
+            )
             validate_last_activity(
                 v,
                 project.get("lastActivity"),
@@ -1161,12 +1134,30 @@ def validate_snapshot(
                     if fact_project
                     else None
                 ),
+                present_evidence,
             )
 
             if fact_project:
                 v.require(present is True, prefix + ":current-present")
                 if repository is not None:
                     v.require(repository == fact_project.get("repository"), prefix + ":repository-facts")
+                if present_evidence is False:
+                    v.require(
+                        project.get("stage") == "Unknown",
+                        prefix + ":stage-without-evidence",
+                    )
+                    v.require(
+                        project.get("health") == "Unknown",
+                        prefix + ":health-without-evidence",
+                    )
+                    v.require(
+                        project.get("tone") == "neutral",
+                        prefix + ":tone-without-evidence",
+                    )
+                    v.require(
+                        observed is None,
+                        prefix + ":observed-at-without-evidence",
+                    )
             elif project_id in previous_projects:
                 v.require(present is False, prefix + ":missing-present")
                 if repository is not None:
@@ -1174,6 +1165,12 @@ def validate_snapshot(
                 v.require(project.get("stage") == "Unknown", prefix + ":missing-stage")
                 v.require(project.get("health") == "Unknown", prefix + ":missing-health")
                 v.require(project.get("tone") == "neutral", prefix + ":missing-tone")
+                v.require(observed is None, prefix + ":missing-observed-at")
+                v.require(
+                    project.get("lastActivity")
+                    == previous_projects[project_id].get("lastActivity"),
+                    prefix + ":missing-last-activity",
+                )
             else:
                 v.errors.append(prefix + ":unknown-project")
     v.require(len(project_ids) == len(set(project_ids)), "snapshot:project-ids-unique")
@@ -1224,6 +1221,10 @@ def validate_snapshot(
         "snapshot:activity",
         {
             project_id: repository_commit_dates(project.get("repository"))
+            for project_id, project in fact_projects.items()
+        },
+        {
+            project_id: project_has_present_evidence(project)
             for project_id, project in fact_projects.items()
         },
     )
@@ -1360,7 +1361,11 @@ def main() -> int:
             return 0
         if args.facts is None:
             raise RuntimeError("facts_required")
-        facts_path = validate_input_path(args.facts, projects_root)
+        facts_path = validate_input_path(
+            args.facts,
+            projects_root,
+            require_private_mode=True,
+        )
         previous_path = (
             validate_input_path(
                 args.previous,
@@ -1370,7 +1375,11 @@ def main() -> int:
             if args.previous
             else None
         )
-        facts = load_json(facts_path, 2 * 1024 * 1024)
+        facts = load_json(
+            facts_path,
+            2 * 1024 * 1024,
+            require_private_mode=True,
+        )
         snapshot = load_json(
             snapshot_path,
             MAX_SNAPSHOT_BYTES,

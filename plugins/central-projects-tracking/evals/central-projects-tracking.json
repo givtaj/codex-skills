@@ -164,6 +164,17 @@
       ]
     },
     {
+      "id": "edge-verified-no-current-action",
+      "kind": "edge",
+      "prompt": "A reviewed project is complete, has no supported current risk, and needs no follow-up action. Keep it in the portfolio without inventing work.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Preserve the evidence-supported completed state without marking it for attention",
+        "Use explicit no-supported-risk and no-action-required sentinel wording",
+        "Do not invent a blocker, risk, owner, deadline, or next task"
+      ]
+    },
+    {
       "id": "edge-symlink-outside-root",
       "kind": "edge",
       "prompt": "An allowlisted evidence path is a symbolic link to a file outside the approved projects directory.",

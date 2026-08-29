@@ -6,16 +6,17 @@ from __future__ import annotations
 import argparse
 import errno
 import hashlib
+import ipaddress
 import json
 import os
 import re
+import secrets
 import selectors
 import shutil
 import signal
 import stat
 import subprocess
 import sys
-import tempfile
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -38,15 +39,26 @@ MAX_GIT_METADATA_ENTRIES = 200000
 PROJECT_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
 EVIDENCE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,62}$")
 SAFE_BRANCH_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]{0,159}$")
-EMAIL_RE = re.compile(r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}")
+EMAIL_RE = re.compile(
+    r"(?<![A-Za-z0-9._%+-])[A-Za-z0-9._%+-]{1,64}@"
+    r"[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?"
+    r"(?![A-Za-z0-9.-])"
+)
 URL_RE = re.compile(r"\b[a-z][a-z0-9+.-]*://", re.IGNORECASE)
 FILE_URI_RE = re.compile(
     r"(?i)\bfile:(?://)?(?:/|[A-Za-z]:[\\/])[^\s]*"
 )
 HOSTNAME_RE = re.compile(
-    r"(?i)\b(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}"
+    r"(?i)\b(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}(?::\d{1,5})?(?:/[^\s]*)?"
+)
+HOST_PORT_RE = re.compile(
+    r"(?i)\b(?=[a-z0-9-]*[a-z])[a-z0-9-]{1,63}:\d{1,5}\b"
 )
 IPV4_RE = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
+PROJECT_ID_HOSTNAME_RE = re.compile(
+    r"(?i)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}"
+)
+PROJECT_ID_IPV4_RE = re.compile(r"(?:\d{1,3}\.){3}\d{1,3}")
 GIT_OBJECT_RE = re.compile(r"\b[a-f0-9]{40,64}\b", re.IGNORECASE)
 MARKUP_RE = re.compile(
     r"(?m)(?:<[^>]+>|^#{1,6}\s|^>\s|^(?:[-*+]|\d+\.)\s|`{1,3}|\*\*|__|!\[|\[[^\]\r\n]+\]\([^)]+\))"
@@ -54,22 +66,92 @@ MARKUP_RE = re.compile(
 ABSOLUTE_PATH_RE = re.compile(
     r"(?<![A-Za-z0-9._~-])(?:~[/\\][^\s]*|/(?:[^/\s]+(?:/[^/\s]*)*)?|[A-Za-z]:[\\/][^\s]+)"
 )
-SECRET_TEXT_RE = re.compile(
-    r"(?i)(?:api[_-]?key|authorization|password|secret|token)\s*[:=]\s*\S+"
+UNC_PATH_RE = re.compile(r"(?:\\\\|//)[A-Za-z0-9._-]+[\\/][^\s]+")
+ENV_ASSIGNMENT_RE = re.compile(
+    r"(?i)(?:^|\s)(?:export\s+)?[A-Z_][A-Z0-9_]{1,}\s*=\s*[^\s]+"
 )
-PROVIDER_TOKEN_RE = re.compile(
-    r"(?:\bsk-[A-Za-z0-9_-]{20,}\b|\bgh[pousr]_[A-Za-z0-9_]{20,}\b|"
-    r"\bgithub_pat_[A-Za-z0-9_]{20,}\b|\bdop_v1_[A-Za-z0-9]{20,}\b|"
-    r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b|\beyJ[A-Za-z0-9_-]{10,}\."
-    r"[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b)"
+FILENAME_RE = re.compile(
+    r"(?i)\b[A-Za-z0-9][A-Za-z0-9_-]{0,100}\.(?:bak|csv|db|diff|env|go|java|js|json|jsonl|key|log|md|ndjson|patch|pem|php|py|rb|rs|sh|sqlite|toml|trace|ts|tsv|txt|yaml|yml)\b"
 )
+RAW_ARTIFACT_RE = re.compile(
+    r"(?im)(?:^diff --git\s|^@@\s|^---\s+\S|^\+\+\+\s+\S|\brefs/(?:heads|remotes)/|\bcommit\s+[a-f0-9]{7,}\b)"
+)
+IPV6_CANDIDATE_RE = re.compile(
+    r"(?<![A-Za-z0-9])\[?[0-9A-Fa-f:]{2,}\]?(?![A-Za-z0-9])"
+)
+SECRET_PATTERNS = (
+    re.compile(r"(?i)(api[_-]?key|secret|token|password)\s*[:=]\s*\S+"),
+    re.compile(r"\bsk-[A-Za-z0-9_-]{20,}\b"),
+    re.compile(r"\bgh[pousr]_[A-Za-z0-9_]{20,}\b"),
+    re.compile(r"\bgithub_pat_[A-Za-z0-9_]{20,}\b"),
+    re.compile(r"\bdop_v1_[A-Za-z0-9]{20,}\b"),
+    re.compile(r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b"),
+    re.compile(r"\bAIza[0-9A-Za-z_-]{35}\b"),
+    re.compile(r"\bxox[baprs]-[A-Za-z0-9-]{10,}\b"),
+    re.compile(r"\bglpat-[A-Za-z0-9_-]{20,}\b"),
+    re.compile(r"\bnpm_[A-Za-z0-9]{20,}\b"),
+    re.compile(r"\bpypi-[A-Za-z0-9_-]{20,}\b"),
+    re.compile(r"\b(?:sk|rk)_live_[A-Za-z0-9]{20,}\b"),
+    re.compile(r"(?i)\bAuthorization\s*:\s*(?:Basic|Bearer)\s+\S+"),
+    re.compile(r"\bssh-(?:rsa|ed25519)\s+[A-Za-z0-9+/=]{40,}"),
+    re.compile(
+        r"\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\."
+        r"[A-Za-z0-9_-]{10,}\b"
+    ),
+    re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----"),
+)
+
+
+def contains_ipv6(value: str) -> bool:
+    for match in IPV6_CANDIDATE_RE.finditer(value):
+        candidate = match.group(0).strip("[]")
+        if ":" not in candidate:
+            continue
+        try:
+            if ipaddress.ip_address(candidate).version == 6:
+                return True
+        except ValueError:
+            continue
+    return False
+
+
+def public_text_violation_kinds(value: str) -> set[str]:
+    """Classify privacy-sensitive forms shared by collection and validation."""
+    violations: set[str] = set()
+    pattern_checks = (
+        ("email", EMAIL_RE),
+        ("url", URL_RE),
+        ("file-uri", FILE_URI_RE),
+        ("git-object", GIT_OBJECT_RE),
+        ("ipv4", IPV4_RE),
+        ("absolute-path", ABSOLUTE_PATH_RE),
+        ("unc-path", UNC_PATH_RE),
+        ("hostname", HOSTNAME_RE),
+        ("host-port", HOST_PORT_RE),
+        ("markup", MARKUP_RE),
+        ("environment", ENV_ASSIGNMENT_RE),
+        ("filename", FILENAME_RE),
+        ("raw-artifact", RAW_ARTIFACT_RE),
+    )
+    for kind, pattern in pattern_checks:
+        if pattern.search(value):
+            violations.add(kind)
+    if PROJECT_ID_HOSTNAME_RE.search(value):
+        violations.add("hostname")
+    if PROJECT_ID_IPV4_RE.search(value):
+        violations.add("ipv4")
+    if contains_ipv6(value):
+        violations.add("ipv6")
+    if any(pattern.search(value) for pattern in SECRET_PATTERNS):
+        violations.add("secret")
+    return violations
 
 
 def valid_project_id(value: Any) -> bool:
     """Accept path-safe ids while excluding network-location-shaped values."""
     if not isinstance(value, str) or not PROJECT_ID_RE.fullmatch(value):
         return False
-    if HOSTNAME_RE.search(value) or IPV4_RE.search(value):
+    if PROJECT_ID_HOSTNAME_RE.search(value) or PROJECT_ID_IPV4_RE.search(value):
         return False
     return True
 
@@ -285,7 +367,11 @@ def validate_projects_root(path: Path) -> Path:
     return resolved
 
 
-def validate_output_path(path: Path, projects_root: Path) -> Path:
+def validate_output_path(
+    path: Path,
+    projects_root: Path,
+    reserved_paths: tuple[Path, ...] = (),
+) -> Path:
     if path.is_symlink() or not path.name:
         raise CollectionError("facts_output_invalid")
     try:
@@ -295,6 +381,16 @@ def validate_output_path(path: Path, projects_root: Path) -> Path:
     output = parent / path.name
     if within(output, projects_root):
         raise CollectionError("facts_output_inside_projects")
+    for reserved in reserved_paths:
+        try:
+            if output == reserved.resolve(strict=True):
+                raise CollectionError("facts_output_conflict")
+        except CollectionError:
+            raise
+        except OSError as exc:
+            raise CollectionError("facts_output_invalid") from exc
+    if output.exists() or output.is_symlink():
+        raise CollectionError("facts_output_exists")
     return output
 
 
@@ -304,6 +400,8 @@ def read_regular_file_no_follow(
     *,
     unreadable_code: str,
     too_large_code: str,
+    required_mode: int | None = None,
+    permissions_code: str = "file_permissions",
 ) -> bytes:
     """Read one regular file without following its final symlink."""
     if not hasattr(os, "O_NOFOLLOW"):
@@ -317,6 +415,11 @@ def read_regular_file_no_follow(
         metadata = os.fstat(descriptor)
         if not stat.S_ISREG(metadata.st_mode):
             raise CollectionError(unreadable_code)
+        if (
+            required_mode is not None
+            and stat.S_IMODE(metadata.st_mode) != required_mode
+        ):
+            raise CollectionError(permissions_code)
         if metadata.st_size > maximum:
             raise CollectionError(too_large_code)
         chunks: list[bytes] = []
@@ -867,17 +970,7 @@ def safe_public_text(value: str, maximum: int) -> str | None:
         return None
     if any(ord(char) < 32 or ord(char) == 127 for char in value):
         return None
-    if (
-        EMAIL_RE.search(value)
-        or URL_RE.search(value)
-        or FILE_URI_RE.search(value)
-        or HOSTNAME_RE.search(value)
-        or GIT_OBJECT_RE.search(value)
-        or MARKUP_RE.search(value)
-        or ABSOLUTE_PATH_RE.search(value)
-        or SECRET_TEXT_RE.search(value)
-        or PROVIDER_TOKEN_RE.search(value)
-    ):
+    if public_text_violation_kinds(value):
         return None
     return value
 
@@ -1350,6 +1443,8 @@ def load_facts_for_verification(path: Path) -> dict[str, Any]:
                 MAX_FACTS_BYTES,
                 unreadable_code="facts_unreadable",
                 too_large_code="facts_too_large",
+                required_mode=0o600,
+                permissions_code="facts_permissions",
             ).decode("utf-8")
         )
     except CollectionError:
@@ -1435,22 +1530,128 @@ def verify_evidence_reads(
         raise EvidenceChanged("evidence_map_changed")
 
 
-def atomic_json_write(path: Path, value: dict[str, Any], mode: int = 0o600) -> None:
+def pin_output_parent(path: Path) -> int:
+    """Open and validate the canonical output parent for later create-only use."""
+    if not hasattr(os, "O_NOFOLLOW"):
+        raise CollectionError("no_follow_unsupported")
+    directory_flags = os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW
+    if hasattr(os, "O_DIRECTORY"):
+        directory_flags |= os.O_DIRECTORY
+    descriptor: int | None = None
+    try:
+        descriptor = os.open(path.parent, directory_flags)
+        if not stat.S_ISDIR(os.fstat(descriptor).st_mode):
+            raise CollectionError("facts_output_invalid")
+        return descriptor
+    except CollectionError:
+        if descriptor is not None:
+            os.close(descriptor)
+        raise
+    except OSError as exc:
+        if descriptor is not None:
+            os.close(descriptor)
+        raise CollectionError("facts_output_invalid") from exc
+
+
+def output_parent_matches(path: Path, directory_descriptor: int) -> bool:
+    """Confirm the requested parent still names the pinned directory."""
+    try:
+        current = os.stat(path.parent, follow_symlinks=False)
+        pinned = os.fstat(directory_descriptor)
+    except OSError:
+        return False
+    return (
+        stat.S_ISDIR(current.st_mode)
+        and stat.S_ISDIR(pinned.st_mode)
+        and (current.st_dev, current.st_ino) == (pinned.st_dev, pinned.st_ino)
+    )
+
+
+def atomic_json_write(
+    path: Path,
+    value: dict[str, Any],
+    mode: int = 0o600,
+    directory_descriptor: int | None = None,
+) -> None:
     payload = (json.dumps(value, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
     if len(payload) > MAX_FACTS_BYTES:
         raise CollectionError("facts_output_too_large")
-    descriptor, temporary_name = tempfile.mkstemp(prefix="." + path.name + ".", dir=path.parent)
-    temporary = Path(temporary_name)
+    owns_directory_descriptor = directory_descriptor is None
+    descriptor: int | None = None
+    temporary_name: str | None = None
     try:
+        if directory_descriptor is None:
+            directory_descriptor = pin_output_parent(path)
+        if not output_parent_matches(path, directory_descriptor):
+            raise CollectionError("facts_output_parent_changed")
+        for _ in range(16):
+            candidate = ".facts." + secrets.token_hex(12)
+            try:
+                descriptor = os.open(
+                    candidate,
+                    os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_CLOEXEC,
+                    mode,
+                    dir_fd=directory_descriptor,
+                )
+                temporary_name = candidate
+                break
+            except FileExistsError:
+                continue
+        if descriptor is None or temporary_name is None:
+            raise CollectionError("facts_output_unavailable")
         os.fchmod(descriptor, mode)
         with os.fdopen(descriptor, "wb") as handle:
+            descriptor = None
             handle.write(payload)
             handle.flush()
             os.fsync(handle.fileno())
-        os.replace(temporary, path)
+        if not output_parent_matches(path, directory_descriptor):
+            raise CollectionError("facts_output_parent_changed")
+        try:
+            os.link(
+                temporary_name,
+                path.name,
+                src_dir_fd=directory_descriptor,
+                dst_dir_fd=directory_descriptor,
+                follow_symlinks=False,
+            )
+        except FileExistsError as exc:
+            raise CollectionError("facts_output_exists") from exc
+        if not output_parent_matches(path, directory_descriptor):
+            try:
+                temporary_metadata = os.stat(
+                    temporary_name,
+                    dir_fd=directory_descriptor,
+                    follow_symlinks=False,
+                )
+                output_metadata = os.stat(
+                    path.name,
+                    dir_fd=directory_descriptor,
+                    follow_symlinks=False,
+                )
+                if (
+                    temporary_metadata.st_dev,
+                    temporary_metadata.st_ino,
+                ) == (output_metadata.st_dev, output_metadata.st_ino):
+                    os.unlink(path.name, dir_fd=directory_descriptor)
+            except OSError:
+                pass
+            raise CollectionError("facts_output_parent_changed")
+    except CollectionError:
+        raise
+    except OSError as exc:
+        raise CollectionError("facts_output_unavailable") from exc
     finally:
-        if temporary.exists():
-            temporary.unlink()
+        if descriptor is not None:
+            os.close(descriptor)
+        if directory_descriptor is not None:
+            if temporary_name is not None:
+                try:
+                    os.unlink(temporary_name, dir_fd=directory_descriptor)
+                except FileNotFoundError:
+                    pass
+            if owns_directory_descriptor:
+                os.close(directory_descriptor)
 
 
 def parse_args() -> argparse.Namespace:
@@ -1493,6 +1694,13 @@ def main() -> int:
                 raise CollectionError("facts_symlink")
             if within(verification_path, projects_root):
                 raise CollectionError("facts_inside_projects")
+            try:
+                if os.path.samefile(evidence_map_path, verification_path):
+                    raise CollectionError("verification_input_conflict")
+            except CollectionError:
+                raise
+            except OSError as exc:
+                raise CollectionError("facts_unreadable") from exc
             facts = load_facts_for_verification(args.verify_evidence)
             verify_evidence_reads(projects_root, evidence_map, facts)
             print(
@@ -1509,9 +1717,21 @@ def main() -> int:
         if args.facts_output is None:
             raise CollectionError("facts_output_invalid")
         generated_at = utc_timestamp(args.generated_at)
-        facts_output = validate_output_path(args.facts_output, projects_root)
-        facts, partial = collect(projects_root, evidence_map, generated_at)
-        atomic_json_write(facts_output, facts)
+        facts_output = validate_output_path(
+            args.facts_output,
+            projects_root,
+            (evidence_map_path,),
+        )
+        output_parent_descriptor = pin_output_parent(facts_output)
+        try:
+            facts, partial = collect(projects_root, evidence_map, generated_at)
+            atomic_json_write(
+                facts_output,
+                facts,
+                directory_descriptor=output_parent_descriptor,
+            )
+        finally:
+            os.close(output_parent_descriptor)
         print(
             json.dumps(
                 {

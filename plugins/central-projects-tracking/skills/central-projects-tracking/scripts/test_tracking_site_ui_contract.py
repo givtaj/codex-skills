@@ -84,6 +84,14 @@ class TrackingSiteUiContractTests(unittest.TestCase):
             CSS,
         )
 
+    def test_maximum_project_label_can_wrap_inside_the_mobile_drawer(self) -> None:
+        self.assertIn(
+            ".copy-path > span { min-width: 0; overflow-wrap: anywhere; }",
+            CSS,
+        )
+        self.assertIn(".copy-path b { flex: 0 0 auto;", CSS)
+        self.assertIn('"projects/" + project.id', APP)
+
 
 if __name__ == "__main__":
     unittest.main()

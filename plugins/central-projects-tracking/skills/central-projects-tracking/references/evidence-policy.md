@@ -90,3 +90,5 @@ Use this category order as a default or tie-breaker among otherwise comparable i
 5. New or unreviewed work with an unknown state.
 
 Every attention item must state the current state, evidence basis, specific risk, and one executable next move. Never invent severity, urgency, an owner, or a deadline.
+
+For a non-attention item, retain a specific risk or next move only when evidence supports it. When neither exists, use `No current supported risk.` and `No action is required.`; do not manufacture follow-up work to fill the schema.

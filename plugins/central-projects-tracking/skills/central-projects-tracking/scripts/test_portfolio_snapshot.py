@@ -265,25 +265,30 @@ class PortfolioWorkflowTests(unittest.TestCase):
 
     @unittest.skipUnless(shutil.which("git"), "Git is required")
     def test_unsafe_commit_subject_is_withheld_from_public_facts(self) -> None:
-        repository = self.create_repository()
-        (repository / "status.txt").write_text("review\n", encoding="utf-8")
-        self.run_git(repository, "add", "status.txt")
-        self.run_git(
-            repository,
-            "commit",
-            "-q",
-            "-m",
+        unsafe_subjects = (
             "Review internal.example/path before release",
+            "Review 192.168." + "001.001 before release",
+            "Review 2001:" + "db8::1 before release",
+            "Review user" + "@" + "workstation before release",
+            "Review db" + ":9 before release",
+            "Review \\\\" + "server\\share before release",
+            "Review PROD_" + "MODE=release before release",
+            "Review refs/" + "heads/private before release",
+            "diff --" + "git a/x b/x",
+            "Review private" + ".txt before release",
+            "Review np" + "m_" + ("a" * 24) + " before release",
         )
+        for index, subject in enumerate(unsafe_subjects):
+            repository = self.create_repository(f"project-{index:02d}")
+            (repository / "status.txt").write_text("review\n", encoding="utf-8")
+            self.run_git(repository, "add", "status.txt")
+            self.run_git(repository, "commit", "-q", "-m", subject)
 
         facts, partial = self.collect()
 
         self.assertFalse(partial)
-        serialized = json.dumps(facts)
-        self.assertNotIn("internal.example", serialized)
-        self.assertIsNone(
-            facts["projects"][0]["repository"]["lastCommit"]["subject"]
-        )
+        for project in facts["projects"]:
+            self.assertIsNone(project["repository"]["lastCommit"]["subject"])
         self.assertEqual(snapshot_validator.validate_facts(facts), [])
 
     @unittest.skipUnless(shutil.which("git"), "Git is required")
@@ -422,6 +427,7 @@ class PortfolioWorkflowTests(unittest.TestCase):
         self.assertEqual(facts["collectionStatus"], "partial")
         self.assertIn("required_evidence_missing", facts["projects"][0]["issues"])
         self.assertEqual(stat.S_IMODE(facts_path.stat().st_mode), 0o600)
+        self.assertEqual(list(self.private_root.glob(".facts.*")), [])
 
     @unittest.skipUnless(shutil.which("git"), "Git is required")
     def test_symlinked_project_and_forbidden_evidence_fail_closed(self) -> None:
@@ -455,6 +461,161 @@ class PortfolioWorkflowTests(unittest.TestCase):
             with self.subTest(broad_root=broad_root):
                 with self.assertRaises(collector.CollectionError):
                     collector.validate_projects_root(Path(broad_root))
+
+    @unittest.skipUnless(shutil.which("git"), "Git is required")
+    def test_facts_output_is_new_only_and_cannot_alias_evidence_input(self) -> None:
+        self.create_repository()
+        existing = self.private_root / "existing-facts.json"
+        existing.write_text("preserve me\n", encoding="utf-8")
+        with self.assertRaises(collector.CollectionError) as existing_error:
+            collector.validate_output_path(existing, self.projects_root)
+        self.assertEqual(existing_error.exception.code, "facts_output_exists")
+
+        raced = self.private_root / "raced-facts.json"
+        validated = collector.validate_output_path(raced, self.projects_root)
+        raced.write_text("preserve race winner\n", encoding="utf-8")
+        with self.assertRaises(collector.CollectionError) as race_error:
+            collector.atomic_json_write(validated, {"value": "new facts"})
+        self.assertEqual(race_error.exception.code, "facts_output_exists")
+        self.assertEqual(raced.read_text(encoding="utf-8"), "preserve race winner\n")
+        self.assertEqual(list(self.private_root.glob(".facts.*")), [])
+
+        linked = self.private_root / "linked-facts.json"
+        linked.symlink_to(existing)
+        dangling = self.private_root / "dangling-facts.json"
+        dangling.symlink_to(self.private_root / "missing-target.json")
+        for path in (linked, dangling):
+            with self.subTest(path=path.name):
+                with self.assertRaises(collector.CollectionError) as symlink_error:
+                    collector.validate_output_path(path, self.projects_root)
+                self.assertEqual(symlink_error.exception.code, "facts_output_invalid")
+                self.assertTrue(path.is_symlink())
+        self.assertEqual(existing.read_text(encoding="utf-8"), "preserve me\n")
+
+        evidence_map_path = self.write_evidence_map(self.evidence_map())
+        original_map = evidence_map_path.read_bytes()
+        process = subprocess.run(
+            [
+                sys.executable,
+                str(SCRIPT_DIRECTORY / "collect_portfolio_facts.py"),
+                "--projects-root",
+                str(self.projects_root),
+                "--evidence-map",
+                str(evidence_map_path),
+                "--facts-output",
+                str(evidence_map_path),
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(process.returncode, 2)
+        self.assertIn("facts_output_conflict", process.stderr)
+        self.assertEqual(evidence_map_path.read_bytes(), original_map)
+
+        evidence_alias = self.private_root / "evidence-map-alias.json"
+        os.link(evidence_map_path, evidence_alias)
+        alias_output = subprocess.run(
+            [
+                sys.executable,
+                str(SCRIPT_DIRECTORY / "collect_portfolio_facts.py"),
+                "--projects-root",
+                str(self.projects_root),
+                "--evidence-map",
+                str(evidence_map_path),
+                "--facts-output",
+                str(evidence_alias),
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(alias_output.returncode, 2)
+        self.assertIn("facts_output_exists", alias_output.stderr)
+        self.assertEqual(evidence_map_path.read_bytes(), original_map)
+
+        verification_alias = subprocess.run(
+            [
+                sys.executable,
+                str(SCRIPT_DIRECTORY / "collect_portfolio_facts.py"),
+                "--projects-root",
+                str(self.projects_root),
+                "--evidence-map",
+                str(evidence_map_path),
+                "--verify-evidence",
+                str(evidence_alias),
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(verification_alias.returncode, 2)
+        self.assertIn("verification_input_conflict", verification_alias.stderr)
+
+        pinned_parent = self.private_root / "pinned-output"
+        pinned_parent.mkdir(mode=0o700)
+        pinned_output = collector.validate_output_path(
+            pinned_parent / "facts.json",
+            self.projects_root,
+        )
+        directory_descriptor = collector.pin_output_parent(pinned_output)
+        moved_parent = self.sandbox / "moved-pinned-output"
+        pinned_parent.rename(moved_parent)
+        pinned_parent.mkdir(mode=0o700)
+        try:
+            with self.assertRaises(collector.CollectionError) as parent_error:
+                collector.atomic_json_write(
+                    pinned_output,
+                    {"value": "new facts"},
+                    directory_descriptor=directory_descriptor,
+                )
+            self.assertEqual(
+                parent_error.exception.code,
+                "facts_output_parent_changed",
+            )
+        finally:
+            os.close(directory_descriptor)
+        self.assertFalse((pinned_parent / "facts.json").exists())
+        self.assertFalse((moved_parent / "facts.json").exists())
+        self.assertEqual(list(moved_parent.glob(".facts.*")), [])
+
+        late_parent = self.private_root / "late-pinned-output"
+        late_parent.mkdir(mode=0o700)
+        late_output = collector.validate_output_path(
+            late_parent / "facts.json",
+            self.projects_root,
+        )
+        late_descriptor = collector.pin_output_parent(late_output)
+        moved_late_parent = self.sandbox / "moved-late-pinned-output"
+        real_link = os.link
+
+        def link_then_swap_parent(*args, **kwargs):
+            result = real_link(*args, **kwargs)
+            late_parent.rename(moved_late_parent)
+            late_parent.mkdir(mode=0o700)
+            return result
+
+        try:
+            with mock.patch.object(
+                collector.os,
+                "link",
+                side_effect=link_then_swap_parent,
+            ):
+                with self.assertRaises(collector.CollectionError) as late_error:
+                    collector.atomic_json_write(
+                        late_output,
+                        {"value": "new facts"},
+                        directory_descriptor=late_descriptor,
+                    )
+            self.assertEqual(
+                late_error.exception.code,
+                "facts_output_parent_changed",
+            )
+        finally:
+            os.close(late_descriptor)
+        self.assertFalse((late_parent / "facts.json").exists())
+        self.assertFalse((moved_late_parent / "facts.json").exists())
+        self.assertEqual(list(moved_late_parent.glob(".facts.*")), [])
 
     def test_rejects_sensitive_evidence_filename_tokens_and_stems(self) -> None:
         for path in (
@@ -542,12 +703,15 @@ class PortfolioWorkflowTests(unittest.TestCase):
             "api.internal.example.com",
             "api.internal.example.com.",
             "api.internal.example.com-project",
+            "x_api.example_backup",
             "192.0.2.1",
             "192.168.001.001",
+            "x_192.168.001.001_backup",
             "project.local:8443",
         ):
             with self.subTest(value=value):
                 self.assertFalse(collector.valid_project_id(value))
+                self.assertTrue(collector.public_text_violation_kinds(value))
         self.assertTrue(collector.valid_project_id("project-one"))
 
         mapping = self.evidence_map()
@@ -561,14 +725,50 @@ class PortfolioWorkflowTests(unittest.TestCase):
         self.create_repository("api.internal.example.com")
         self.create_repository("api.internal.example.com.")
         self.create_repository("api.internal.example.com-project")
+        self.create_repository("x_api.example_backup")
         self.create_repository("192.0.2.1")
         self.create_repository("192.168.001.001")
+        self.create_repository("x_192.168.001.001_backup")
 
         facts, partial = self.collect()
 
         self.assertTrue(partial)
         self.assertEqual(facts["projects"], [])
-        self.assertEqual(facts["skipped"]["unsafeNameEntryCount"], 5)
+        self.assertEqual(facts["skipped"]["unsafeNameEntryCount"], 7)
+
+    @unittest.skipUnless(shutil.which("git"), "Git is required")
+    def test_decorated_network_identifiers_cannot_reach_a_snapshot(self) -> None:
+        self.create_repository()
+        facts, _ = self.collect()
+        baseline = self.candidate_for(facts)
+
+        for project_id in (
+            "x_api.example_backup",
+            "x_192.168.001.001_backup",
+        ):
+            with self.subTest(project_id=project_id):
+                unsafe_facts = copy.deepcopy(facts)
+                unsafe_facts["projects"][0]["id"] = project_id
+                unsafe_facts["sourceDigest"] = collector.compute_source_digest(
+                    unsafe_facts
+                )
+                facts_errors = snapshot_validator.validate_facts(unsafe_facts)
+                self.assertIn("facts:project:0:id", facts_errors)
+
+                unsafe_snapshot = copy.deepcopy(baseline)
+                unsafe_snapshot["projects"][0]["id"] = project_id
+                unsafe_snapshot["contentDigest"] = snapshot_validator.content_digest(
+                    unsafe_snapshot
+                )
+                snapshot_errors = snapshot_validator.validate_snapshot(
+                    unsafe_snapshot,
+                    facts,
+                )
+                self.assertIn("snapshot:project:id", snapshot_errors)
+                self.assertIn(
+                    "root.projects[0].id:unsafe-string",
+                    snapshot_errors,
+                )
 
     @unittest.skipUnless(shutil.which("git"), "Git is required")
     def test_activity_ids_must_be_structured_safe_and_record_bound(self) -> None:
@@ -649,6 +849,154 @@ class PortfolioWorkflowTests(unittest.TestCase):
         )
 
     @unittest.skipUnless(shutil.which("git"), "Git is required")
+    def test_current_editorial_and_noncommit_claims_require_present_evidence(
+        self,
+    ) -> None:
+        self.create_repository()
+        facts, _ = self.collect()
+        baseline = self.candidate_for(facts)
+        claim_date = facts["generatedAt"][:10]
+
+        editorial_claims = (
+            ("stage", "Live", "snapshot:project:project-one:stage-without-evidence"),
+            (
+                "health",
+                "Healthy",
+                "snapshot:project:project-one:health-without-evidence",
+            ),
+            ("tone", "good", "snapshot:project:project-one:tone-without-evidence"),
+            (
+                "observedAt",
+                claim_date,
+                "snapshot:project:project-one:observed-at-without-evidence",
+            ),
+        )
+        for field, value, expected_error in editorial_claims:
+            with self.subTest(field=field):
+                candidate = copy.deepcopy(baseline)
+                candidate["projects"][0][field] = value
+                candidate["contentDigest"] = snapshot_validator.content_digest(
+                    candidate
+                )
+                self.assertIn(
+                    expected_error,
+                    snapshot_validator.validate_snapshot(candidate, facts),
+                )
+
+        for kind, activity_type in (
+            ("evidence", "EVIDENCE"),
+            ("build", "BUILD"),
+            ("study", "STUDY"),
+        ):
+            with self.subTest(kind=kind):
+                candidate = copy.deepcopy(baseline)
+                candidate["projects"][0]["lastActivity"] = {
+                    "on": claim_date,
+                    "kind": kind,
+                }
+                candidate["activity"] = [
+                    {
+                        "id": f"project-one:{claim_date}:{kind}:fixture",
+                        "on": claim_date,
+                        "type": activity_type,
+                        "projectId": "project-one",
+                        "note": "An unsupported editorial activity claim was recorded.",
+                    }
+                ]
+                candidate["contentDigest"] = snapshot_validator.content_digest(
+                    candidate
+                )
+                errors = snapshot_validator.validate_snapshot(candidate, facts)
+                self.assertIn(
+                    "snapshot:project:project-one:last-activity:allowlisted-evidence",
+                    errors,
+                )
+                self.assertIn(
+                    "snapshot:activity:0:allowlisted-evidence",
+                    errors,
+                )
+
+        no_activity = copy.deepcopy(baseline)
+        no_activity["projects"][0]["lastActivity"] = {"on": None, "kind": "none"}
+        no_activity["activity"] = []
+        no_activity["contentDigest"] = snapshot_validator.content_digest(no_activity)
+        self.assertEqual(
+            snapshot_validator.validate_snapshot(no_activity, facts),
+            [],
+        )
+
+    @unittest.skipUnless(shutil.which("git"), "Git is required")
+    def test_attention_rows_reject_no_risk_and_no_action_sentinels(self) -> None:
+        self.create_repository()
+        facts, _ = self.collect()
+        baseline = self.candidate_for(facts)
+
+        for field, value, expected_error in (
+            (
+                "risk",
+                snapshot_validator.NO_RISK_SENTINEL,
+                "snapshot:project:project-one:attention-risk",
+            ),
+            (
+                "next",
+                snapshot_validator.NO_ACTION_SENTINEL,
+                "snapshot:project:project-one:attention-next",
+            ),
+        ):
+            with self.subTest(field=field):
+                candidate = copy.deepcopy(baseline)
+                candidate["projects"][0][field] = value
+                candidate["contentDigest"] = snapshot_validator.content_digest(
+                    candidate
+                )
+                self.assertIn(
+                    expected_error,
+                    snapshot_validator.validate_snapshot(candidate, facts),
+                )
+
+        non_attention = copy.deepcopy(baseline)
+        non_attention["projects"][0]["attention"] = False
+        non_attention["projects"][0]["risk"] = snapshot_validator.NO_RISK_SENTINEL
+        non_attention["projects"][0]["next"] = snapshot_validator.NO_ACTION_SENTINEL
+        non_attention["contentDigest"] = snapshot_validator.content_digest(
+            non_attention
+        )
+        self.assertEqual(
+            snapshot_validator.validate_snapshot(non_attention, facts),
+            [],
+        )
+
+    @unittest.skipUnless(shutil.which("git"), "Git is required")
+    def test_present_evidence_can_support_reviewed_editorial_activity(self) -> None:
+        repository = self.create_repository()
+        (repository / "PROJECT_STATUS.md").write_text(
+            "Reviewed delivery evidence.\n",
+            encoding="utf-8",
+        )
+        facts, _ = self.collect()
+        candidate = self.candidate_for(facts)
+        claim_date = facts["generatedAt"][:10]
+        project = candidate["projects"][0]
+        project["stage"] = "Live"
+        project["health"] = "Healthy"
+        project["tone"] = "good"
+        project["observedAt"] = claim_date
+        project["lastActivity"] = {"on": claim_date, "kind": "build"}
+        candidate["activity"] = [
+            {
+                "id": f"project-one:{claim_date}:build:fixture",
+                "on": claim_date,
+                "type": "BUILD",
+                "projectId": "project-one",
+                "note": "The allowlisted delivery evidence supports this build record.",
+            }
+        ]
+        candidate["contentDigest"] = snapshot_validator.content_digest(candidate)
+
+        self.assertTrue(snapshot_validator.project_has_present_evidence(facts["projects"][0]))
+        self.assertEqual(snapshot_validator.validate_snapshot(candidate, facts), [])
+
+    @unittest.skipUnless(shutil.which("git"), "Git is required")
     def test_unborn_repository_cannot_support_current_commit_claims(self) -> None:
         repository = self.projects_root / "project-one"
         repository.mkdir()
@@ -693,16 +1041,46 @@ class PortfolioWorkflowTests(unittest.TestCase):
 
         self.assertEqual(snapshot_validator.validate_previous_snapshot(previous), [])
 
-    def test_public_text_rejects_punctuated_paths_and_file_uri(self) -> None:
+    def test_collection_and_final_sanitizers_reject_the_same_sensitive_forms(
+        self,
+    ) -> None:
         slash = chr(47)
         unsafe_values = (
             f"Path:{slash}{'ho' + 'me'}{slash}account",
             f"file:{slash}{'et' + 'c'}{slash}settings",
             f"value=({slash}{'va' + 'r'}{slash}records)",
+            "192.168." + "001.001",
+            "2001:" + "db8::1",
+            "user" + "@" + "workstation",
+            "localhost" + ":8",
+            "db" + ":9",
+            "\\\\" + "server\\share",
+            "PROD_" + "MODE=release",
+            "refs/" + "heads/private",
+            "diff --" + "git a/x b/x",
+            "private" + ".txt",
+            "np" + "m_" + ("a" * 24),
         )
         for value in unsafe_values:
             with self.subTest(value=value):
                 self.assertIsNone(collector.safe_public_text(value, 180))
+                validator = snapshot_validator.Validator()
+                snapshot_validator.append_sanitization_errors(
+                    validator,
+                    {"value": value},
+                    "root",
+                )
+                self.assertIn("root.value:unsafe-string", validator.errors)
+
+        safe = "Review the approved release boundary"
+        self.assertEqual(collector.safe_public_text(safe, 180), safe)
+        validator = snapshot_validator.Validator()
+        snapshot_validator.append_sanitization_errors(
+            validator,
+            {"value": safe},
+            "root",
+        )
+        self.assertEqual(validator.errors, [])
 
     def test_rejects_evidence_map_inside_projects_root(self) -> None:
         evidence_map_path = self.projects_root / "evidence-map.json"
@@ -828,6 +1206,17 @@ class PortfolioWorkflowTests(unittest.TestCase):
         ]
         verified = subprocess.run(command, check=False, capture_output=True, text=True)
         self.assertEqual(verified.returncode, 0, verified.stdout + verified.stderr)
+
+        facts_path.chmod(0o644)
+        public_facts = subprocess.run(
+            command,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(public_facts.returncode, 2)
+        self.assertIn("facts_permissions", public_facts.stderr)
+        facts_path.chmod(0o600)
 
         evidence.write_text("Mutated status evidence.\n", encoding="utf-8")
         mutated = subprocess.run(command, check=False, capture_output=True, text=True)
@@ -1027,7 +1416,10 @@ class PortfolioWorkflowTests(unittest.TestCase):
 
         tampered = json.loads(previous_path.read_text(encoding="utf-8"))
         tampered["projects"][0]["summary"] = "Tampered after finalization."
-        collector.atomic_json_write(previous_path, tampered)
+        previous_path.write_text(
+            json.dumps(tampered, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
         invalid = subprocess.run(
             [
                 sys.executable,
@@ -1077,6 +1469,33 @@ class PortfolioWorkflowTests(unittest.TestCase):
             [],
         )
 
+        changed_activity = copy.deepcopy(candidate)
+        changed_activity["projects"][1]["lastActivity"] = {
+            "on": "2001-01-01",
+            "kind": "study",
+        }
+        changed_activity["contentDigest"] = snapshot_validator.content_digest(
+            changed_activity
+        )
+        self.assertIn(
+            "snapshot:project:previous-project:missing-last-activity",
+            snapshot_validator.validate_snapshot(changed_activity, facts, previous),
+        )
+
+        fresh_observation = copy.deepcopy(candidate)
+        fresh_observation["projects"][1]["observedAt"] = facts["generatedAt"][:10]
+        fresh_observation["contentDigest"] = snapshot_validator.content_digest(
+            fresh_observation
+        )
+        self.assertIn(
+            "snapshot:project:previous-project:missing-observed-at",
+            snapshot_validator.validate_snapshot(fresh_observation, facts, previous),
+        )
+        self.assertIn(
+            "previous:project:previous-project:missing-observed-at",
+            snapshot_validator.validate_previous_snapshot(fresh_observation),
+        )
+
     @unittest.skipUnless(shutil.which("git"), "Git is required")
     def test_validator_rejects_inputs_inside_projects_and_nonprivate_draft(self) -> None:
         repository = self.create_repository()
@@ -1095,6 +1514,12 @@ class PortfolioWorkflowTests(unittest.TestCase):
         result = self.run_validator(bad_mode, facts_path)
         self.assertEqual(result.returncode, 2)
         self.assertIn("snapshot_permissions", result.stderr)
+
+        facts_path.chmod(0o644)
+        result = self.run_validator(candidate_path, facts_path)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("snapshot_permissions", result.stderr)
+        facts_path.chmod(0o600)
 
         inside_candidate = repository / "candidate.json"
         inside_facts = repository / "facts.json"

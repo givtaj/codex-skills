@@ -330,10 +330,11 @@ dd { margin: .25rem 0 0; font-size: .8rem; }
 .commit-suggestions li > span { color: var(--blue); }
 .commit-suggestions p { margin: .2rem 0 0; color: var(--muted); font-size: .72rem; }
 .drawer-commit p { margin: .6rem 0 0; }
-.copy-path { display: flex; width: 100%; justify-content: space-between; align-items: center; margin-top: 1rem; padding: 1rem; border: 1px solid var(--line-strong); background: transparent; text-align: left; cursor: pointer; }
+.copy-path { display: flex; width: 100%; gap: 1rem; justify-content: space-between; align-items: center; margin-top: 1rem; padding: 1rem; border: 1px solid var(--line-strong); background: transparent; text-align: left; cursor: pointer; }
+.copy-path > span { min-width: 0; overflow-wrap: anywhere; }
 .copy-path small, .copy-path strong { display: block; }
 .copy-path small { color: var(--faint); }
-.copy-path b { color: var(--blue); }
+.copy-path b { flex: 0 0 auto; color: var(--blue); }
 .drawer-footnote { margin-top: .7rem; color: var(--faint); font-size: .7rem; }
 .error-state { max-width: 760px; margin: 8rem auto; padding: 2rem; border: 1px solid var(--red); background: var(--panel); }
 .error-state p { color: var(--muted); }

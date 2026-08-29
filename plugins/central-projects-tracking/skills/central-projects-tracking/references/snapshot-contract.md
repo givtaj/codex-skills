@@ -97,6 +97,10 @@ Enums:
 
 The 'stage', 'health', 'tone', 'attention', 'summary', 'risk', 'next', 'stack', 'evidence', 'observedAt', and non-commit activity fields are reviewed editorial truth derived from allowlisted evidence. Git facts never decide them automatically. Use 'Unknown' when support is absent.
 
+A current project with no evidence record in the 'present' state must use 'Unknown' stage and health, 'neutral' tone, and 'observedAt: null'. Its Git-supported commit activity may remain. Evidence, build, and study last-activity or activity claims require at least one present allowlisted evidence record. A retained missing project uses 'observedAt: null' and preserves its previously validated last-activity record exactly.
+
+Attention items require a supported specific risk and executable next move. A non-attention item with no supported current risk or required action uses the exact truthful sentinels 'No current supported risk.' and 'No action is required.' rather than invented work.
+
 For a current project, copy repository facts exactly from the verified private facts. For a previous project missing from the current collection, use 'present: false', Unknown editorial state, and the exact all-zero unavailable repository object. Never silently drop a previously tracked id.
 
 ## Repository record
@@ -173,7 +177,7 @@ Commit suggestions are deterministic count-based actions, not semantic claims ab
 
 The activity 'id' has the exact form 'projectId:on:type:label'. Its project id and date must exactly match 'projectId' and 'on'; its lowercase type must exactly match 'type'. The final label uses lowercase letters, digits, and hyphens, starts with a letter or digit, and is at most 63 characters. The complete id is at most 161 characters.
 
-Allowed types are 'COMMIT', 'EVIDENCE', 'BUILD', and 'STUDY'. Each record references a present project. Activity is evidence, not a progress score. A commit proves only that a commit was recorded; build, study, or operational claims require an applicable allowlisted record.
+Allowed types are 'COMMIT', 'EVIDENCE', 'BUILD', and 'STUDY'. Each record references a present project. Activity is evidence, not a progress score. A current commit record must match a captured repository commit date. Current evidence, build, and study records require at least one present allowlisted evidence record for that project. Historical records in a separately validated previous snapshot remain shape-validated when their old private facts are unavailable.
 
 ## Sanitization and bounds
 

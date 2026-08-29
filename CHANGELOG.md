@@ -9,6 +9,20 @@ All notable changes to published plugins are recorded here. Versions follow sema
 - Repository-wide canonical naming, durable-language, public-safety, and golden-request import gates.
 - Exact evaluation-result schema validation and mutation-focused tests for plugin versions, dates, checks, and behavioral-replay metadata.
 
+## loose-thread-finder 0.1.0 - 2026-08-29
+
+### Added
+
+- Initial public preview for recovering forgotten project intent, unfinished work, stalled handoffs, and related task families from bounded task history and repository evidence.
+- Evidence precedence, continuity classifications, material-risk ranking, one-action handoffs, and explicit boundaries around durable repository truth.
+- Read-only scheduled-review behavior with an exact no-material-change sentinel and separately authorized manual task organization.
+- Host-adapter guidance and a labelled golden request set covering direct, indirect, incomplete, follow-up, boundary, negative, and edge behavior.
+
+### Validation status
+
+- Local structural, repository, privacy, packaging, and public Git identity checks passed for `0.1.0`.
+- Focused local host replay covers explicit activation, boundary routing, and scheduled no-change behavior; complete golden-set replay across supported hosts remains pending.
+
 ## github-repository-guardrails 0.2.1 - 2026-08-27
 
 ### Fixed

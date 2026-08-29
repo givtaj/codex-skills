@@ -11,3 +11,7 @@
 ## Central Projects Tracking
 
 [`central-projects-tracking`](../plugins/central-projects-tracking/) discovers an approved set of local repositories, combines bounded Git facts with allowlisted evidence, finalizes a sanitized portfolio snapshot, and builds a complete local project-tracking website. It is cross-listed here while retaining `Productivity` as its marketplace category.
+
+## Coordinator Mode
+
+[`coordinator-mode`](../plugins/coordinator-mode/) divides genuinely complex work into bounded lanes, supervises authority and write ownership, and integrates only verified results. It is cross-listed here while retaining `Developer Tools` as its marketplace category.

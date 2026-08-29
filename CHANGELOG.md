@@ -78,3 +78,11 @@ All notable changes to published plugins are recorded here. Versions follow sema
 ### Security
 
 - Scanned repositories remain read-only; the workflow never fetches, executes project code, publishes, deploys, schedules, or exposes raw paths, dirty filenames, Git identities, object ids, logs, or evidence contents.
+
+## coordinator-mode 0.1.0 - 2026-08-29
+
+### Added
+
+- Initial public preview of `coordinator-mode`, retaining the original skill name as an installable Codex workflow rather than presenting it as a built-in product mode.
+- Native plugin packaging, marketplace registration, implicit activation metadata, and labelled direct, indirect, incomplete, follow-up, boundary, negative, and edge requests.
+- Bounded delegation, minimum-necessary context, single-writer ownership, prompt-injection resistance, active drift control, capability-aware fallback, corrected-retry limits, and truthful partial-result reporting.

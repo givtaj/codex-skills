@@ -84,7 +84,7 @@ The public repository also uses GitHub secret scanning and push protection. Loca
 
 ## Quality model
 
-The repository follows current OpenAI guidance: one recognizable user goal per skill, concise trigger descriptions with explicit boundaries, progressive disclosure for supporting resources, stable plugin identities, and labelled activation tests. Host-specific implementation details live in references so the core workflow remains understandable across model and product generations.
+The repository follows current OpenAI guidance: one recognizable user goal per skill, concise trigger descriptions with explicit boundaries, progressive disclosure for supporting resources, stable plugin identities, and labelled activation tests. Repository policy requires every skill pull request to include a maintainer-reviewed global-name rationale and six-month durability rationale. Host-specific implementation details live in references so the core workflow remains understandable across model and product generations; automated validation catches objective violations but does not replace semantic review. The checks become merge-blocking only when the documented `main` ruleset and CODEOWNER review requirements are enabled on GitHub.
 
 See the [OpenAI skill guide](https://learn.chatgpt.com/docs/build-skills), [plugin packaging and marketplace guide](https://developers.openai.com/plugins/build/plugins), and [metadata evaluation guide](https://developers.openai.com/plugins/guides/optimize-metadata).
 

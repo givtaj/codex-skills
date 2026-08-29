@@ -11,3 +11,5 @@ An installed skill can guide ChatGPT or Codex to inspect information that the us
 Review each future plugin's manifest, skills, scripts, dependencies, and privacy statement before installation. A plugin that later adds a bundled network service or data-collecting component must update this document and its release notes before publication.
 
 Two commits and one annotated tag created before the repository's noreply policy retain a direct maintainer email in immutable public Git metadata. Current commits and tags are required to use GitHub-provided noreply identities. Removing the legacy metadata would require a coordinated history rewrite; it is not copied into plugin files or runtime output.
+
+Native local bookkeeping namespaces are not publication roots and are excluded from local all-ref validation: `refs/codex/*`, `refs/stash`, `refs/bisect/*`, `refs/original/*`, `refs/replace/*`, `refs/rewritten/*`, and `refs/worktree/*`. Fetched copies placed below `refs/validation/origin/*` are validated normally, even when the remaining path mirrors one of those local-only names.

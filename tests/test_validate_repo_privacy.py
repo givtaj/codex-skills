@@ -351,6 +351,56 @@ On Windows, use C:\\Users\\username\\project.
 
                 self.assertIn("Git", message)
 
+    def test_local_only_refs_are_excluded_but_validation_mirrors_are_scanned(self) -> None:
+        local_refs = (
+            "refs/codex/checkpoint",
+            "refs/stash",
+            "refs/bisect/checkpoint",
+            "refs/original/checkpoint",
+            "refs/replace/checkpoint",
+            "refs/rewritten/checkpoint",
+            "refs/worktree/checkpoint",
+        )
+        for index, local_ref in enumerate(local_refs):
+            with self.subTest(local_ref=local_ref), GitFixture() as fixture:
+                fixture.write("README.md", "safe\n")
+                fixture.commit("Initial commit")
+                secret = "gl" + "pat-" + chr(ord("A") + index) * 20
+                orphan = fixture.write("orphan.bin", secret)
+                blob = fixture.git("hash-object", "-w", str(orphan))
+                orphan.unlink()
+                fixture.git("update-ref", local_ref, blob)
+
+                fixture.validate()
+
+                mirror_ref = (
+                    "refs/validation/origin/" + local_ref.removeprefix("refs/")
+                )
+                fixture.git("update-ref", mirror_ref, blob)
+                message = self.assert_rejected_without_echo(fixture, secret)
+
+                self.assertIn("Git ref blob", message)
+
+        for index, public_ref in enumerate(
+            (
+                "refs/stash/public",
+                "refs/codex",
+                "refs/codexical/checkpoint",
+            )
+        ):
+            with self.subTest(public_ref=public_ref), GitFixture() as fixture:
+                fixture.write("README.md", "safe\n")
+                fixture.commit("Initial commit")
+                secret = "gl" + "pat-" + chr(ord("X") + index) * 20
+                orphan = fixture.write("orphan.bin", secret)
+                blob = fixture.git("hash-object", "-w", str(orphan))
+                orphan.unlink()
+                fixture.git("update-ref", public_ref, blob)
+
+                message = self.assert_rejected_without_echo(fixture, secret)
+
+                self.assertIn("Git ref blob", message)
+
     def test_malformed_manifest_key_cannot_echo_an_escaped_secret(self) -> None:
         secret = "gl" + "pat-" + "Q" * 20
         escaped_key = "glp" + "\\u0061" + "t-" + "Q" * 20

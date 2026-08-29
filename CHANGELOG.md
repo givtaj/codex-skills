@@ -9,6 +9,10 @@ All notable changes to published plugins are recorded here. Versions follow sema
 - Repository-wide canonical naming, durable-language, public-safety, and golden-request import gates.
 - Exact evaluation-result schema validation and mutation-focused tests for plugin versions, dates, checks, and behavioral-replay metadata.
 
+### Changed
+
+- Excluded native local bookkeeping refs from all-ref publication scans while keeping fetched mirrors under `refs/validation/origin/*` in scope.
+
 ## github-repository-guardrails 0.2.1 - 2026-08-27
 
 ### Fixed

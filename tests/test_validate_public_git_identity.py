@@ -146,6 +146,75 @@ class PublicGitIdentityTests(unittest.TestCase):
                 else:
                     self.repo.git("update-ref", "-d", "refs/review/topic")
 
+    def test_local_only_refs_are_excluded_but_validation_mirrors_are_checked(self) -> None:
+        local_refs = (
+            "refs/codex/checkpoint",
+            "refs/stash",
+            "refs/bisect/checkpoint",
+            "refs/original/checkpoint",
+            "refs/replace/checkpoint",
+            "refs/rewritten/checkpoint",
+            "refs/worktree/checkpoint",
+        )
+        for index, local_ref in enumerate(local_refs):
+            with self.subTest(local_ref=local_ref):
+                self.repo.commit(f"safe base {index}")
+                branch = f"local-only-{index}"
+                self.repo.git("switch", "--create", branch)
+                private_commit = self.repo.commit(
+                    "local-only identity",
+                    email="person@example.com",
+                )
+                self.repo.git("switch", "main")
+                self.repo.git("update-ref", local_ref, private_commit)
+                self.repo.git("branch", "--delete", "--force", branch)
+
+                local_result = self.repo.validate()
+
+                mirror_ref = (
+                    "refs/validation/origin/" + local_ref.removeprefix("refs/")
+                )
+                self.repo.git("update-ref", mirror_ref, private_commit)
+                mirrored_result = self.repo.validate()
+
+                self.assertEqual(local_result.returncode, 0, local_result.stderr)
+                self.assertEqual(mirrored_result.returncode, 1)
+                self.assertIn(private_commit[:12], mirrored_result.stderr)
+
+                self.repo.git("update-ref", "-d", mirror_ref)
+                self.repo.git("update-ref", "-d", local_ref)
+
+    def test_nonlocal_ref_boundaries_remain_checked(self) -> None:
+        for public_ref in (
+            "refs/stash/public",
+            "refs/codex",
+            "refs/codexical/checkpoint",
+        ):
+            with self.subTest(public_ref=public_ref):
+                repository = GitFixture()
+                try:
+                    repository.commit("public base")
+                    repository.git("switch", "--create", "private-topic")
+                    private_commit = repository.commit(
+                        "public ref identity",
+                        email="person@example.com",
+                    )
+                    repository.git("switch", "main")
+                    repository.git("update-ref", public_ref, private_commit)
+                    repository.git(
+                        "branch",
+                        "--delete",
+                        "--force",
+                        "private-topic",
+                    )
+
+                    result = repository.validate()
+
+                    self.assertEqual(result.returncode, 1)
+                    self.assertIn(private_commit[:12], result.stderr)
+                finally:
+                    repository.close()
+
     def test_explicit_range_can_exclude_a_synthetic_merge_commit(self) -> None:
         base = self.repo.commit("base")
         self.repo.git("switch", "--create", "feature")

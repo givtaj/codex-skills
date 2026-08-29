@@ -18,12 +18,14 @@ try:
         LEGACY_COMMIT_EXEMPTIONS,
         LEGACY_TAG_OBJECT_EXEMPTIONS,
         NOREPLY_RE,
+        is_local_only_ref,
     )
 except ImportError:
     from validate_public_git_identity import (  # type: ignore[no-redef]
         LEGACY_COMMIT_EXEMPTIONS,
         LEGACY_TAG_OBJECT_EXEMPTIONS,
         NOREPLY_RE,
+        is_local_only_ref,
     )
 
 
@@ -702,7 +704,7 @@ def inspect_index(
 
 
 def validate_public_git_history(root: Path) -> None:
-    """Scan content reachable from every locally available Git ref and HEAD."""
+    """Scan content reachable from every publishable Git ref and HEAD."""
 
     require(
         bool(git_bytes(root, "rev-parse", "--git-dir", allow_failure=True)),
@@ -730,6 +732,8 @@ def validate_public_git_history(root: Path) -> None:
         fields = line.split(b"\x00")
         require(len(fields) == 3, "malformed Git ref metadata")
         raw_ref, object_id, object_type = fields
+        if is_local_only_ref(raw_ref.decode("latin-1")):
+            continue
         ref_label = safe_path_label(raw_ref)
         inspect_public_bytes(raw_ref, f"Git ref name: {ref_label}", check_unfinished=False)
         inspect_reachable_git_object(

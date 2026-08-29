@@ -6,6 +6,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from scripts import validate_repo
 
@@ -29,7 +30,11 @@ class GitFixture:
     def __exit__(self, *_args: object) -> None:
         self._temporary_directory.cleanup()
 
-    def git(self, *args: str) -> str:
+    def git_with_environment(
+        self,
+        environment_updates: dict[str, str],
+        *args: str,
+    ) -> str:
         environment = os.environ.copy()
         environment.update(
             {
@@ -41,6 +46,7 @@ class GitFixture:
                 "GIT_COMMITTER_DATE": "2026-01-01T00:00:00+00:00",
             }
         )
+        environment.update(environment_updates)
         result = subprocess.run(
             ["git", "-c", "commit.gpgsign=false", "-c", "core.hooksPath=/dev/null", *args],
             cwd=self.path,
@@ -51,6 +57,9 @@ class GitFixture:
             text=True,
         )
         return result.stdout.strip()
+
+    def git(self, *args: str) -> str:
+        return self.git_with_environment({}, *args)
 
     def write(self, relative_path: str, content: bytes | str) -> Path:
         path = self.path / relative_path
@@ -85,6 +94,52 @@ def representative_new_secrets() -> list[tuple[str, str]]:
 
 
 class PublicContentValidationTests(unittest.TestCase):
+    def synthetic_merge_fixture(
+        self,
+        fixture: GitFixture,
+        *,
+        message: str = "Merge contribution for validation",
+    ) -> tuple[str, str, str]:
+        fixture.write("README.md", "base\n")
+        base_sha = fixture.commit("Create base")
+        fixture.git("checkout", "-b", "feature")
+        fixture.write("feature.txt", "safe contribution\n")
+        head_sha = fixture.commit("Add feature")
+        fixture.git("checkout", "main")
+        private_email = "merge-bot@" + "platform.internal"
+        fixture.git_with_environment(
+            {
+                "GIT_AUTHOR_EMAIL": private_email,
+                "GIT_COMMITTER_EMAIL": private_email,
+            },
+            "merge",
+            "--no-ff",
+            "--message",
+            message,
+            "feature",
+        )
+        merge_sha = fixture.git("rev-parse", "HEAD")
+        fixture.git("checkout", "--detach", merge_sha)
+        fixture.git("branch", "--force", "main", base_sha)
+        fixture.git(
+            "update-ref",
+            "refs/validation/origin/heads/main",
+            base_sha,
+        )
+        return merge_sha, base_sha, head_sha
+
+    def synthetic_merge_environment(
+        self,
+        merge_sha: str,
+        base_sha: str,
+        head_sha: str,
+    ) -> dict[str, str]:
+        return {
+            validate_repo.SYNTHETIC_MERGE_ENV: merge_sha,
+            validate_repo.CONTRIBUTION_BASE_ENV: base_sha,
+            validate_repo.CONTRIBUTION_HEAD_ENV: head_sha,
+        }
+
     def assert_rejected_without_echo(self, fixture: GitFixture, secret: str) -> str:
         with self.assertRaises(validate_repo.ValidationError) as caught:
             fixture.validate()
@@ -98,6 +153,84 @@ class PublicContentValidationTests(unittest.TestCase):
             fixture.commit("Create clean repository")
 
             fixture.validate()
+
+    def test_verified_unpublished_merge_exempts_only_commit_metadata(self) -> None:
+        with GitFixture() as fixture:
+            merge_sha, base_sha, head_sha = self.synthetic_merge_fixture(fixture)
+            environment = self.synthetic_merge_environment(
+                merge_sha,
+                base_sha,
+                head_sha,
+            )
+
+            with mock.patch.dict(os.environ, environment, clear=False):
+                fixture.validate()
+
+    def test_unverified_or_published_merge_cannot_claim_the_exception(self) -> None:
+        with GitFixture() as fixture:
+            merge_sha, base_sha, head_sha = self.synthetic_merge_fixture(fixture)
+            environment = self.synthetic_merge_environment(
+                merge_sha,
+                merge_sha,
+                head_sha,
+            )
+            with mock.patch.dict(os.environ, environment, clear=False):
+                with self.assertRaises(validate_repo.ValidationError):
+                    fixture.validate()
+
+        with GitFixture() as fixture:
+            merge_sha, base_sha, head_sha = self.synthetic_merge_fixture(fixture)
+            fixture.git(
+                "update-ref",
+                "refs/validation/origin/heads/published-merge",
+                merge_sha,
+            )
+            environment = self.synthetic_merge_environment(
+                merge_sha,
+                base_sha,
+                head_sha,
+            )
+            with mock.patch.dict(os.environ, environment, clear=False):
+                with self.assertRaises(validate_repo.ValidationError):
+                    fixture.validate()
+
+    def test_merge_exception_does_not_exempt_commit_message(self) -> None:
+        secret = "sk_" + "test_" + "Z" * 24
+        with GitFixture() as fixture:
+            merge_sha, base_sha, head_sha = self.synthetic_merge_fixture(
+                fixture,
+                message="Accidental " + secret,
+            )
+            environment = self.synthetic_merge_environment(
+                merge_sha,
+                base_sha,
+                head_sha,
+            )
+            with mock.patch.dict(os.environ, environment, clear=False):
+                message = self.assert_rejected_without_echo(fixture, secret)
+
+        self.assertIn("commit message", message)
+
+    def test_direct_email_in_ordinary_commit_metadata_is_rejected(self) -> None:
+        private_email = "author@" + "privatecorp.dev"
+        with GitFixture() as fixture:
+            fixture.write("README.md", "safe\n")
+            fixture.git("add", "--all")
+            fixture.git_with_environment(
+                {
+                    "GIT_AUTHOR_EMAIL": private_email,
+                    "GIT_COMMITTER_EMAIL": private_email,
+                },
+                "commit",
+                "--message",
+                "Add safe content",
+            )
+
+            with self.assertRaises(validate_repo.ValidationError) as caught:
+                fixture.validate()
+
+        self.assertNotIn(private_email, str(caught.exception))
+        self.assertIn("commit metadata", str(caught.exception))
 
     def test_harmless_example_addresses_and_generic_home_paths_pass(self) -> None:
         content = """\

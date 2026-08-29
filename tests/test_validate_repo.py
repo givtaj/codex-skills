@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import os
+import subprocess
 import tempfile
 import unittest
 from copy import deepcopy
@@ -23,10 +25,61 @@ class EvaluationResultValidationTests(unittest.TestCase):
         self.results_dir.mkdir(parents=True)
         self.root_patch = mock.patch.object(validate_repo, "ROOT", self.root)
         self.root_patch.start()
+        self.git("init", "--initial-branch=main")
+        (self.root / "README.md").write_text("release fixture\n", encoding="utf-8")
+        self.git("add", "README.md")
+        self.git("commit", "--message", "Create release fixture")
+        self.candidate_sha = self.git("rev-parse", "HEAD")
+        self.git(
+            "tag",
+            "--annotate",
+            "--message",
+            "Candidate fixture",
+            "example-skill-v1.2.3-rc.1",
+        )
+        tag_object = self.git(
+            "rev-parse",
+            "refs/tags/example-skill-v1.2.3-rc.1",
+        )
+        self.git(
+            "update-ref",
+            "refs/validation/origin/tags/example-skill-v1.2.3-rc.1",
+            tag_object,
+        )
 
     def tearDown(self) -> None:
         self.root_patch.stop()
         self.temporary_directory.cleanup()
+
+    def git(self, *args: str) -> str:
+        environment = os.environ.copy()
+        environment.update(
+            {
+                "GIT_AUTHOR_NAME": "Example Validator",
+                "GIT_AUTHOR_EMAIL": "12345678+example-validator@users.noreply.github.com",
+                "GIT_COMMITTER_NAME": "Example Validator",
+                "GIT_COMMITTER_EMAIL": "12345678+example-validator@users.noreply.github.com",
+            }
+        )
+        result = subprocess.run(
+            [
+                "git",
+                "-c",
+                "commit.gpgsign=false",
+                "-c",
+                "tag.gpgsign=false",
+                "-c",
+                "core.hooksPath=/dev/null",
+                *args,
+            ],
+            cwd=self.root,
+            env=environment,
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        return result.stdout.strip()
 
     def valid_result(self) -> dict:
         return {
@@ -82,7 +135,7 @@ class EvaluationResultValidationTests(unittest.TestCase):
                     "status": "passed",
                     "plugin_version": self.plugin_version,
                     "candidate_ref": "example-skill-v1.2.3-rc.1",
-                    "commit_sha": "b" * 40,
+                    "commit_sha": self.candidate_sha,
                     "repository_url": "https://example.com/example/repository",
                     "codex_cli_version": "0.150.0-alpha.8",
                     "github_actions_run_url": "https://example.com/actions/runs/123",
@@ -102,7 +155,7 @@ class EvaluationResultValidationTests(unittest.TestCase):
                     "release_state": "public-release-candidate",
                     "plugin_version": self.plugin_version,
                     "candidate_ref": "example-skill-v1.2.3-rc.1",
-                    "commit_sha": "b" * 40,
+                    "commit_sha": self.candidate_sha,
                     "repository_url": "https://example.com/example/repository",
                     "note": "Checks passed against an immutable public candidate.",
                 },
@@ -113,7 +166,7 @@ class EvaluationResultValidationTests(unittest.TestCase):
                 "public_candidate_verification": {
                     "status": "passed",
                     "candidate_ref": "example-skill-v1.2.3-rc.1",
-                    "commit_sha": "b" * 40,
+                    "commit_sha": self.candidate_sha,
                     "repository_url": "https://example.com/example/repository",
                     "codex_cli_version": "0.150.0-alpha.8",
                     "github_actions_run_url": "https://example.com/actions/runs/123",
@@ -147,6 +200,28 @@ class EvaluationResultValidationTests(unittest.TestCase):
     def assert_invalid(self, result: dict, filename: str = "2026-08-27-structural.json") -> None:
         with self.assertRaises(validate_repo.ValidationError):
             self.validate(result, filename)
+
+    def write_release_pair(
+        self,
+        smoke: dict | None = None,
+        structural: dict | None = None,
+    ) -> None:
+        self.write_result(
+            smoke or self.valid_release_smoke_result(),
+            "2026-08-27-v1.2.3-codex-cli.json",
+        )
+        self.write_result(
+            structural or self.valid_release_structural_result(),
+            "2026-08-27-v1.2.3-structural.json",
+        )
+
+    def validate_result_set(self) -> None:
+        validate_repo.validate_eval_results(
+            self.plugin_dir,
+            self.skill_name,
+            self.plugin_version,
+            self.golden_case_ids,
+        )
 
     def test_accepts_current_result_shape(self) -> None:
         self.assertEqual(self.validate(self.valid_result()), self.plugin_version)
@@ -188,6 +263,50 @@ class EvaluationResultValidationTests(unittest.TestCase):
             self.plugin_version,
         )
 
+    def test_accepts_release_pair_bound_to_trusted_candidate_tag(self) -> None:
+        self.write_release_pair()
+
+        self.validate_result_set()
+
+    def test_rejects_release_pair_with_inconsistent_candidate_identity(self) -> None:
+        structural = self.valid_release_structural_result()
+        structural["tested_artifact"]["repository_url"] = (
+            "https://example.org/another/repository"
+        )
+        structural["public_candidate_verification"]["repository_url"] = (
+            "https://example.org/another/repository"
+        )
+        self.write_release_pair(structural=structural)
+
+        with self.assertRaises(validate_repo.ValidationError):
+            self.validate_result_set()
+
+    def test_rejects_release_pair_with_missing_or_mismatched_tag(self) -> None:
+        fixtures = ("missing-ref", "wrong-commit")
+        for fixture in fixtures:
+            with self.subTest(fixture=fixture):
+                for result_path in self.results_dir.glob("*.json"):
+                    result_path.unlink()
+                smoke = self.valid_release_smoke_result()
+                structural = self.valid_release_structural_result()
+                if fixture == "missing-ref":
+                    for candidate in (
+                        smoke["public_candidate_verification"],
+                        structural["tested_artifact"],
+                        structural["public_candidate_verification"],
+                    ):
+                        candidate["candidate_ref"] = "example-skill-v1.2.3-rc.404"
+                else:
+                    for candidate in (
+                        smoke["public_candidate_verification"],
+                        structural["tested_artifact"],
+                        structural["public_candidate_verification"],
+                    ):
+                        candidate["commit_sha"] = "c" * 40
+                self.write_release_pair(smoke=smoke, structural=structural)
+
+                with self.assertRaises(validate_repo.ValidationError):
+                    self.validate_result_set()
     def test_rejects_unknown_or_inconsistent_release_evidence(self) -> None:
         unknown_nested_key = self.valid_release_smoke_result()
         unknown_nested_key["tested_artifact"]["unexpected"] = True
@@ -221,10 +340,14 @@ class EvaluationResultValidationTests(unittest.TestCase):
         self.assert_invalid(result, "2026-08-27-v1.2.3-codex-cli.json")
 
     def test_accepts_historical_result_alongside_current_result(self) -> None:
-        historical = self.valid_result()
+        historical = self.valid_behavioral_result()
         historical["plugin_version"] = "1.2.2"
         historical["date"] = "2026-08-26"
-        self.write_result(historical, "2026-08-26-structural.json")
+        historical["behavioral_replay"]["case_ids"] = [
+            "retired-direct-case",
+            "retired-edge-case",
+        ]
+        self.write_result(historical, "2026-08-26-behavioral.json")
         self.write_result(self.valid_result())
 
         validate_repo.validate_eval_results(
@@ -233,6 +356,19 @@ class EvaluationResultValidationTests(unittest.TestCase):
             self.plugin_version,
             self.golden_case_ids,
         )
+
+    def test_current_behavioral_result_still_uses_current_golden_cases(self) -> None:
+        current = self.valid_behavioral_result()
+        current["behavioral_replay"]["case_ids"] = ["retired-direct-case"]
+        self.write_result(current, "2026-08-27-behavioral.json")
+
+        with self.assertRaises(validate_repo.ValidationError):
+            validate_repo.validate_eval_results(
+                self.plugin_dir,
+                self.skill_name,
+                self.plugin_version,
+                self.golden_case_ids,
+            )
 
     def test_rejects_result_set_without_current_plugin_version(self) -> None:
         historical = self.valid_result()

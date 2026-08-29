@@ -233,6 +233,10 @@ RELEASE_SMOKE_CANDIDATE_KEYS = RELEASE_CANDIDATE_KEYS | {
 }
 RELEASE_SMOKE_REPLAY_KEYS = {"status", "passed", "pending", "note"}
 RELEASE_STRUCTURAL_REPLAY_KEYS = {"status", "result"}
+SYNTHETIC_MERGE_ENV = "VALIDATION_SYNTHETIC_MERGE_SHA"
+CONTRIBUTION_BASE_ENV = "VALIDATION_CONTRIBUTION_BASE_SHA"
+CONTRIBUTION_HEAD_ENV = "VALIDATION_CONTRIBUTION_HEAD_SHA"
+PUBLISHED_REF_NAMESPACE = "refs/validation/origin"
 
 
 class ValidationError(Exception):
@@ -455,6 +459,98 @@ def git_bytes(
     return result.stdout
 
 
+def validated_unpublished_merge_commit(root: Path) -> str | None:
+    """Return the exact CI merge commit whose metadata may be unpublished.
+
+    The exception is available only when all three trusted workflow values are
+    present, identify the checked-out two-parent merge, and are anchored in the
+    separately fetched public-ref namespace. The merge itself must not be
+    reachable from that namespace.
+    """
+
+    merge_sha = os.environ.get(SYNTHETIC_MERGE_ENV)
+    base_sha = os.environ.get(CONTRIBUTION_BASE_ENV)
+    head_sha = os.environ.get(CONTRIBUTION_HEAD_ENV)
+    supplied = (merge_sha, base_sha, head_sha)
+    if not any(value is not None for value in supplied):
+        return None
+    require(
+        all(
+            isinstance(value, str)
+            and COMMIT_SHA_RE.fullmatch(value) is not None
+            for value in supplied
+        ),
+        "pull-request merge validation requires three full Git object IDs",
+    )
+    assert merge_sha is not None and base_sha is not None and head_sha is not None
+    require(base_sha != head_sha, "pull-request base and head commits must differ")
+
+    for label, commit_sha in (
+        ("merge", merge_sha),
+        ("base", base_sha),
+        ("head", head_sha),
+    ):
+        resolved = git_bytes(
+            root,
+            "rev-parse",
+            "--verify",
+            f"{commit_sha}^{{commit}}",
+            allow_failure=True,
+        ).strip()
+        require(
+            resolved == commit_sha.encode("ascii"),
+            f"pull-request {label} object does not resolve to the declared commit",
+        )
+
+    checked_out = git_bytes(root, "rev-parse", "--verify", "HEAD^{commit}").strip()
+    require(
+        checked_out == merge_sha.encode("ascii"),
+        "declared pull-request merge is not the checked-out commit",
+    )
+    parents = git_bytes(root, "show", "-s", "--format=%P", merge_sha).split()
+    require(
+        len(parents) == 2
+        and set(parents) == {base_sha.encode("ascii"), head_sha.encode("ascii")},
+        "declared pull-request merge parents do not match the contribution",
+    )
+
+    published_refs = git_bytes(
+        root,
+        "for-each-ref",
+        "--format=%(refname)",
+        PUBLISHED_REF_NAMESPACE,
+    ).splitlines()
+    require(
+        bool(published_refs),
+        "pull-request merge validation requires the fetched public-ref namespace",
+    )
+    containing_base_refs = git_bytes(
+        root,
+        "for-each-ref",
+        "--format=%(refname)",
+        "--contains",
+        base_sha,
+        PUBLISHED_REF_NAMESPACE,
+    ).splitlines()
+    require(
+        bool(containing_base_refs),
+        "pull-request base commit is not anchored in fetched public refs",
+    )
+    merge_refs = git_bytes(
+        root,
+        "for-each-ref",
+        "--format=%(refname)",
+        "--contains",
+        merge_sha,
+        PUBLISHED_REF_NAMESPACE,
+    ).splitlines()
+    require(
+        not merge_refs,
+        "declared pull-request merge is reachable from a fetched public ref",
+    )
+    return merge_sha
+
+
 def split_git_object(raw: bytes) -> tuple[bytes, bytes]:
     headers, separator, body = raw.partition(b"\n\n")
     if not separator:
@@ -617,6 +713,7 @@ def validate_public_git_history(root: Path) -> None:
         shallow == b"false",
         "Git history is shallow; fetch full history and tags before public-content validation",
     )
+    unpublished_merge = validated_unpublished_merge_commit(root)
     refs_raw = git_bytes(
         root,
         "for-each-ref",
@@ -670,7 +767,10 @@ def validate_public_git_history(root: Path) -> None:
         inspect_public_bytes(
             headers,
             f"commit metadata {commit_id[:12]}",
-            allow_all_emails=commit_id in LEGACY_COMMIT_EXEMPTIONS,
+            allow_all_emails=(
+                commit_id in LEGACY_COMMIT_EXEMPTIONS
+                or commit_id == unpublished_merge
+            ),
             check_unfinished=False,
         )
         inspect_public_bytes(message, f"commit message {commit_id[:12]}")
@@ -895,8 +995,94 @@ def validate_public_candidate(
         )
 
 
+def trusted_candidate_tag_namespace(root: Path) -> str:
+    """Prefer the CI-fetched origin tag namespace when it is available."""
+
+    fetched_namespace = f"{PUBLISHED_REF_NAMESPACE}/tags"
+    fetched_tags = git_bytes(
+        root,
+        "for-each-ref",
+        "--format=%(refname)",
+        fetched_namespace,
+    ).splitlines()
+    return fetched_namespace if fetched_tags else "refs/tags"
+
+
+def validate_candidate_tag(
+    root: Path,
+    candidate_ref: str,
+    commit_sha: str,
+    label: str,
+) -> None:
+    namespace = trusted_candidate_tag_namespace(root)
+    full_ref = f"{namespace}/{candidate_ref}"
+    resolved = git_bytes(
+        root,
+        "rev-parse",
+        "--verify",
+        f"{full_ref}^{{commit}}",
+        allow_failure=True,
+    ).strip()
+    require(
+        resolved == commit_sha.encode("ascii"),
+        f"{label}: candidate tag is missing or resolves to a different commit",
+    )
+
+
+def validate_release_evidence_pairs(
+    plugin_dir: Path,
+    result_files: list[Path],
+) -> None:
+    pairs: dict[tuple[str, str], dict[str, tuple[Path, dict]]] = {}
+    for result_path in result_files:
+        result = load_json(result_path)
+        result_keys = set(result)
+        if result_keys == RELEASE_STRUCTURAL_RESULT_KEYS:
+            result_kind = "structural"
+        elif result_keys == RELEASE_SMOKE_RESULT_KEYS:
+            result_kind = "smoke"
+        else:
+            continue
+        key = (str(result["date"]), str(result["plugin_version"]))
+        pair = pairs.setdefault(key, {})
+        require(
+            result_kind not in pair,
+            f"{relative(plugin_dir / 'evals')}: duplicate {result_kind} release evidence",
+        )
+        pair[result_kind] = (result_path, result)
+
+    for (result_date, result_version), pair in pairs.items():
+        require(
+            set(pair) == {"structural", "smoke"},
+            f"{relative(plugin_dir / 'evals')}: release evidence for "
+            f"{result_date} v{result_version} must include structural and smoke results",
+        )
+        structural_path, structural = pair["structural"]
+        smoke_path, smoke = pair["smoke"]
+        structural_candidate = structural["public_candidate_verification"]
+        smoke_candidate = smoke["public_candidate_verification"]
+        identity_fields = ("candidate_ref", "commit_sha", "repository_url")
+        require(
+            all(
+                structural_candidate[field] == smoke_candidate[field]
+                for field in identity_fields
+            ),
+            f"{relative(structural_path)} and {relative(smoke_path)}: "
+            "paired release evidence identifies different public candidates",
+        )
+        validate_candidate_tag(
+            ROOT,
+            str(structural_candidate["candidate_ref"]),
+            str(structural_candidate["commit_sha"]),
+            f"{relative(structural_path)} public_candidate_verification",
+        )
+
+
 def validate_eval_result(
-    result_path: Path, skill_name: str, golden_case_ids: set[str]
+    result_path: Path,
+    skill_name: str,
+    golden_case_ids: set[str],
+    current_plugin_version: str | None = None,
 ) -> str:
     result = load_json(result_path)
     result_keys = set(result)
@@ -1106,16 +1292,20 @@ def validate_eval_result(
         len(replay_case_ids) == len(set(replay_case_ids)),
         f"{relative(result_path)}: behavioral replay case_ids must be unique",
     )
-    require(
-        set(replay_case_ids) <= golden_case_ids,
-        f"{relative(result_path)}: behavioral replay contains an unknown case id",
+    validates_current_cases = (
+        current_plugin_version is None or result_version == current_plugin_version
     )
-    if replay_status == "passed":
+    if validates_current_cases:
         require(
-            set(replay_case_ids) == golden_case_ids,
-            f"{relative(result_path)}: passed replay must cover every golden case",
+            set(replay_case_ids) <= golden_case_ids,
+            f"{relative(result_path)}: behavioral replay contains an unknown case id",
         )
-    else:
+        if replay_status == "passed":
+            require(
+                set(replay_case_ids) == golden_case_ids,
+                f"{relative(result_path)}: passed replay must cover every golden case",
+            )
+    if replay_status != "passed":
         require(
             isinstance(replay["reason"], str) and replay["reason"].strip(),
             f"{relative(result_path)}: partial or failed replay requires a reason",
@@ -1144,9 +1334,11 @@ def validate_eval_results(
             result_path,
             skill_name,
             golden_case_ids,
+            plugin_version,
         )
         if result_version == plugin_version:
             current_version_results += 1
+    validate_release_evidence_pairs(plugin_dir, result_files)
     require(
         current_version_results > 0,
         f"{relative(plugin_dir / 'evals')}: "

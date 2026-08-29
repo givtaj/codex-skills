@@ -175,12 +175,25 @@
     {
       "id": "indirect-priority-ranking",
       "kind": "indirect",
-      "prompt": "Put these on one decision screen: a verified failing release gate, an unresolved architecture choice, risky uncommitted integration work, stale validation evidence, and a newly discovered project that has not been reviewed.",
+      "prompt": "Put these on one decision screen. Today's verified failing release gate blocks the release. An uncommitted integration change observed today could corrupt production data. A current architecture choice is unresolved but has no deadline or known downstream impact. Validation evidence is stale, and a newly discovered project has not been reviewed.",
       "expected_activation": "activate",
       "expected_behavior": [
-        "Rank the verified failure before the unresolved decision, integration risk, stale evidence, and unreviewed unknown",
-        "Structure priority rows as state, evidence, risk, and one executable next move",
-        "Do not invent severity, owners, or deadlines"
+        "Rank by material consequence and urgency together with evidence strength and freshness",
+        "Rank the verified release blocker first and the evidenced production-data risk ahead of the lower-consequence unresolved decision",
+        "Use the category hierarchy only as a default or tie-breaker among items with comparable consequence, urgency, evidence strength, and freshness",
+        "Structure active priority rows as state, evidence, risk, and one executable next move",
+        "Do not invent severity, urgency, owners, or deadlines"
+      ]
+    },
+    {
+      "id": "edge-verified-shipped-no-follow-up",
+      "kind": "edge",
+      "prompt": "Add this verified shipped release to the status dashboard. Deployment and current runtime checks passed, and there is no evidence of a remaining risk or required follow-up.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Report the verified shipped outcome and its supporting evidence",
+        "Do not invent a risk, blocker, owner, deadline, or follow-up task",
+        "Omit risk and next-move fields or explicitly state no current risk and no action required"
       ]
     },
     {

@@ -18,7 +18,9 @@ The dashboard's generated-at time describes when the review was composed. A sour
 
 ## Rank attention and next moves
 
-Order attention items by this hierarchy:
+Rank attention items first by material consequence and urgency, then by the strength and freshness of the supporting evidence. A verified failure will normally lead, but do not let a low-consequence item outrank a materially greater risk merely because it belongs to an earlier category.
+
+Use this category order as a default or tie-breaker among items with comparable consequence, urgency, evidence strength, and freshness:
 
 1. Verified failure or blocker.
 2. Explicit unresolved decision.
@@ -26,13 +28,15 @@ Order attention items by this hierarchy:
 4. Stale evidence that could change a decision.
 5. New or unreviewed work whose state remains unknown.
 
-Within a level, prefer the item with the clearest consequence and strongest current evidence. Do not invent severity to break a tie.
+Do not invent severity, urgency, or impact to break a tie. When those dimensions are not supported, say that the ordering is provisional.
 
-Structure each priority row as:
+For an active or attention item, structure its priority row as:
 
 `Current state → Evidence → Specific risk → One executable next move`
 
 The next move should begin with a concrete action, identify its target, and make the useful completion signal clear. Do not invent an owner or deadline. If a field is unsupported, mark it `unknown` and make evidence collection the next move when that is decision-relevant.
+
+For a completed or verified item, report the supported state and evidence without manufacturing an ongoing risk or another task. Omit risk and next-move fields when the layout allows it; otherwise use `no current risk` and `no action required` only when the evidence supports closure.
 
 ## Minimize sensitive output
 

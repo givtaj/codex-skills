@@ -37,7 +37,7 @@ Use the smallest set of visuals that makes the state obvious. A typical dashboar
 2. Two to four evidence-backed KPI cards.
 3. One status gauge or donut when completed, active, monitoring, blocked, interrupted, or unknown categories have an auditable basis.
 4. One useful chart for allocation, throughput, trend, readiness, or progress. Omit it when the evidence does not support it.
-5. A compact ledger of the most important work items. Structure each priority row as current state, evidence, specific risk, and one executable next move, with a direct clickable source link when safe and available.
+5. A compact ledger of the most important work items. For active or attention items, structure each priority row as current state, evidence, specific risk, and one executable next move, with a direct clickable source link when safe and available. For completed or verified items, report the supported outcome without inventing a risk or follow-up; omit those fields or say `no current risk` and `no action required` when the layout needs explicit values.
 6. The top three next actions or decisions, ordered by the attention model, plus only the risks or blockers that could change them.
 
 Do not add filler metrics, duplicate charts, decorative noise, or a gauge whose value is merely subjective.

@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "skill": "status-review-dashboard",
+  "plugin_version": "0.1.1",
+  "date": "2026-08-27",
+  "scope": "structural",
+  "status": "passed",
+  "checks": [
+    "repository marketplace validation",
+    "skill structure validation",
+    "plugin manifest and packaged-skill validation"
+  ],
+  "behavioral_replay": {
+    "status": "pending",
+    "reason": "The v0.1.1 golden request set has not yet been replayed across every supported host surface."
+  }
+}

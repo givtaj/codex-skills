@@ -7,6 +7,7 @@ All notable changes to published plugins are recorded here. Versions follow sema
 ### Added
 
 - Repository-wide canonical naming, durable-language, public-safety, and golden-request import gates.
+- Exact evaluation-result schema validation and mutation-focused tests for plugin versions, dates, checks, and behavioral-replay metadata.
 
 ## github-repository-guardrails 0.2.1 - 2026-08-27
 
@@ -38,6 +39,18 @@ All notable changes to published plugins are recorded here. Versions follow sema
 - Split repository discovery from GitHub Projects discovery and made missing Project scope a non-destructive, explicit branch.
 - Removed SSH-only transport, mandatory field schemas, fixed work identifiers, and fixed lifecycle assumptions.
 - Updated bundled workflow actions to reviewed commit-pinned releases.
+
+## status-review-dashboard 0.1.1 - 2026-08-27
+
+### Added
+
+- A routed evidence and decision model for claim support, source freshness, attention ordering, executable next moves, and sensitive-output minimization.
+- Golden requests covering Git evidence boundaries, mixed freshness, sensitive evidence, priority ranking, and persistence or automation non-triggers.
+
+### Changed
+
+- Distinguished mechanically observed repository state from reviewed health, readiness, stage, completion, shipment, deployment, and operational claims.
+- Clarified that persistence, recurring automation, site generation, publishing, deployment, and hosting remain separate workflows.
 
 ## status-review-dashboard 0.1.0 - 2026-08-27
 

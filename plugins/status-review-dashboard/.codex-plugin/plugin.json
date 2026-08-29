@@ -1,6 +1,6 @@
 {
   "name": "status-review-dashboard",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Create compact, source-linked status-review dashboards for project health, release readiness, workflow operations, learning progress, and periodic activity.",
   "author": {
     "name": "givtaj",

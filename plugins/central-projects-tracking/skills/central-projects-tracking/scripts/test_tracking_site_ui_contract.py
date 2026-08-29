@@ -74,6 +74,16 @@ class TrackingSiteUiContractTests(unittest.TestCase):
         self.assertIn(".move-title { display: block;", CSS)
         self.assertIn(".move-copy { display: block;", CSS)
 
+    def test_brief_table_scroll_is_contained_on_narrow_viewports(self) -> None:
+        self.assertIn(
+            ".control-grid > *, .brief-rail > *, .focus-panel { min-width: 0; }",
+            CSS,
+        )
+        self.assertIn(
+            ".project-table { min-width: 0; max-width: 100%; overflow-x: auto; }",
+            CSS,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

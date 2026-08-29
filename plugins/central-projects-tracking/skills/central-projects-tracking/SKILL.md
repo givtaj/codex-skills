@@ -27,6 +27,13 @@ Ask one concise question only when a missing value materially changes filesystem
 
 Read **references/evidence-policy.md** before collection. Read **references/snapshot-contract.md** before composing or validating. Read **references/site-creation.md** before building the site. The bundled map is only a template; it grants no evidence access.
 
+Before running any bundled script, resolve `TRACKING_PYTHON` to one absolute executable path for a host-provided Python 3.10+ runtime. Check the available compatible workspace runtime and versioned executables before falling back to `python3`; do not assume the first `python3` on `PATH` is supported. Verify the selected interpreter once and reuse it for every command:
+
+    TRACKING_PYTHON=ABSOLUTE_COMPATIBLE_PYTHON
+    "$TRACKING_PYTHON" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 2)'
+
+If no compatible interpreter is available, stop with `unsupported_python`. Do not run collection, validation, or site creation under an older interpreter.
+
 ## Establish the private workspace
 
 - Create a unique private POSIX directory outside the projects root with mode 0700.
@@ -40,7 +47,7 @@ Read **references/evidence-policy.md** before collection. Read **references/snap
 
 Run:
 
-    python3 scripts/collect_portfolio_facts.py \
+    "$TRACKING_PYTHON" scripts/collect_portfolio_facts.py \
       --projects-root PROJECTS_ROOT \
       --evidence-map EVIDENCE_MAP \
       --facts-output PRIVATE_FACTS
@@ -59,7 +66,7 @@ Mechanical Git evidence includes safe branch labels, path-free worktree counts, 
 
 When a previous snapshot exists, run:
 
-    python3 scripts/validate_portfolio_snapshot.py PREVIOUS_SNAPSHOT \
+    "$TRACKING_PYTHON" scripts/validate_portfolio_snapshot.py PREVIOUS_SNAPSHOT \
       --projects-root PROJECTS_ROOT \
       --standalone
 
@@ -69,7 +76,7 @@ If its source digest equals the new complete facts digest and no editorial corre
 
 1. Validate no-change reuse against the new facts:
 
-       python3 scripts/validate_portfolio_snapshot.py PREVIOUS_SNAPSHOT \
+       "$TRACKING_PYTHON" scripts/validate_portfolio_snapshot.py PREVIOUS_SNAPSHOT \
          --projects-root PROJECTS_ROOT \
          --facts PRIVATE_FACTS \
          --previous PREVIOUS_SNAPSHOT
@@ -101,7 +108,7 @@ For every current project and every retained missing previous project:
 - State one factual summary, one specific risk or uncertainty, and one executable next move.
 - Preserve a last-activity record only when an applicable commit or allowlisted source supports it.
 
-Build the brief in evidence order: verified failure or blocker, unresolved decision, integration/local-work risk, materially stale evidence, then new or unknown work. Use one to five focus ids, zero to three ready ids, at most five decisions, and at most eight evidence gaps.
+Rank the brief first by material consequence and urgency, then by evidence strength and freshness. Among otherwise comparable items, use this default category order: verified failure or blocker, unresolved decision, integration/local-work risk, materially stale evidence, then new or unknown work. Do not let a low-impact category outrank a more consequential supported risk merely because of its label. Use one to five focus ids, zero to three ready ids, at most five decisions, and at most eight evidence gaps.
 
 Include at most eight unique newest-first activity records. A commit record proves only that a commit occurred. Evidence, build, and study records need direct allowlisted support.
 
@@ -120,7 +127,7 @@ Set the draft file mode to 0600 before validation.
 
 First verify every mapped evidence item against the initial private hashes:
 
-    python3 scripts/collect_portfolio_facts.py \
+    "$TRACKING_PYTHON" scripts/collect_portfolio_facts.py \
       --projects-root PROJECTS_ROOT \
       --evidence-map EVIDENCE_MAP \
       --verify-evidence PRIVATE_FACTS
@@ -129,7 +136,7 @@ Exit 3 means evidence changed; discard the draft and restart collection/review. 
 
 Then recollect the entire same scope into a new private facts file:
 
-    python3 scripts/collect_portfolio_facts.py \
+    "$TRACKING_PYTHON" scripts/collect_portfolio_facts.py \
       --projects-root PROJECTS_ROOT \
       --evidence-map EVIDENCE_MAP \
       --facts-output VERIFIED_FACTS
@@ -140,7 +147,7 @@ Require complete exit 0 and the same source digest as PRIVATE_FACTS. A different
 
 Run:
 
-    python3 scripts/validate_portfolio_snapshot.py DRAFT_SNAPSHOT \
+    "$TRACKING_PYTHON" scripts/validate_portfolio_snapshot.py DRAFT_SNAPSHOT \
       --projects-root PROJECTS_ROOT \
       --facts VERIFIED_FACTS \
       --finalize
@@ -163,7 +170,7 @@ Never weaken a validator to make a draft pass. Correct the evidence, editorial f
 
 Run:
 
-    python3 scripts/build_tracking_site.py FINAL_SNAPSHOT \
+    "$TRACKING_PYTHON" scripts/build_tracking_site.py FINAL_SNAPSHOT \
       --projects-root PROJECTS_ROOT \
       --output-dir SITE_OUTPUT
 
@@ -171,7 +178,7 @@ The output must be a new directory. Never overwrite or merge an existing directo
 
 Validate the handoff artifact:
 
-    python3 scripts/validate_tracking_site.py SITE_OUTPUT \
+    "$TRACKING_PYTHON" scripts/validate_tracking_site.py SITE_OUTPUT \
       --snapshot FINAL_SNAPSHOT \
       --projects-root PROJECTS_ROOT
 

@@ -58,6 +58,8 @@ Sanitized means the snapshot passed the bundled technical checks. It does not me
 
 The plugin installs no package, runs no bundled network service, sends no telemetry, and has no remote dependency.
 
+Resolve one absolute Python 3.10+ executable before starting and reuse it for collection, snapshot validation, site creation, and site validation. Do not assume the unversioned `python3` is compatible. Every entry point exits with code 2 and the bounded reason `unsupported_python` when invoked under an older runtime.
+
 ## Authority boundary
 
 The skill creates the validated local website. It does not modify scanned repositories, fetch, run project code, commit, push, schedule, publish, deploy, send a report, or widen access. Those are separately authorized workflows.

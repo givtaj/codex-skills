@@ -171,6 +171,8 @@ Commit suggestions are deterministic count-based actions, not semantic claims ab
 }
 ~~~
 
+The activity 'id' has the exact form 'projectId:on:type:label'. Its project id and date must exactly match 'projectId' and 'on'; its lowercase type must exactly match 'type'. The final label uses lowercase letters, digits, and hyphens, starts with a letter or digit, and is at most 63 characters. The complete id is at most 161 characters.
+
 Allowed types are 'COMMIT', 'EVIDENCE', 'BUILD', and 'STUDY'. Each record references a present project. Activity is evidence, not a progress score. A commit proves only that a commit was recorded; build, study, or operational claims require an applicable allowlisted record.
 
 ## Sanitization and bounds

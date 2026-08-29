@@ -21,6 +21,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from runtime_support import require_supported_python
+
 
 SCHEMA_VERSION = 2
 EVIDENCE_MAP_SCHEMA_VERSION = 1
@@ -44,6 +46,7 @@ FILE_URI_RE = re.compile(
 HOSTNAME_RE = re.compile(
     r"(?i)\b(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}"
 )
+IPV4_RE = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
 GIT_OBJECT_RE = re.compile(r"\b[a-f0-9]{40,64}\b", re.IGNORECASE)
 MARKUP_RE = re.compile(
     r"(?m)(?:<[^>]+>|^#{1,6}\s|^>\s|^(?:[-*+]|\d+\.)\s|`{1,3}|\*\*|__|!\[|\[[^\]\r\n]+\]\([^)]+\))"
@@ -60,6 +63,17 @@ PROVIDER_TOKEN_RE = re.compile(
     r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b|\beyJ[A-Za-z0-9_-]{10,}\."
     r"[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b)"
 )
+
+
+def valid_project_id(value: Any) -> bool:
+    """Accept path-safe ids while excluding network-location-shaped values."""
+    if not isinstance(value, str) or not PROJECT_ID_RE.fullmatch(value):
+        return False
+    if HOSTNAME_RE.search(value) or IPV4_RE.search(value):
+        return False
+    return True
+
+
 GIT_CONFIG_INCLUDE_RE = re.compile(
     r"(?im)^\s*\[\s*include(?:if\b[^\]]*)?\s*\]"
 )
@@ -425,7 +439,7 @@ def load_evidence_map(path: Path) -> dict[str, Any]:
         raise CollectionError("evidence_map_invalid")
     normalized_projects: dict[str, list[dict[str, Any]]] = {}
     for project_id, entries in projects.items():
-        if not isinstance(project_id, str) or not PROJECT_ID_RE.fullmatch(project_id):
+        if not valid_project_id(project_id):
             raise CollectionError("evidence_map_project")
         normalized_projects[project_id] = validate_evidence_list(entries)
 
@@ -1270,7 +1284,7 @@ def collect(
             continue
         if not project.is_dir():
             continue
-        if not PROJECT_ID_RE.fullmatch(project.name):
+        if not valid_project_id(project.name):
             unsafe_names += 1
             partial = True
             continue
@@ -1391,7 +1405,7 @@ def verify_evidence_reads(
         project_id = fact_project.get("id")
         if (
             not isinstance(project_id, str)
-            or not PROJECT_ID_RE.fullmatch(project_id)
+            or not valid_project_id(project_id)
             or project_id in project_ids
             or not isinstance(fact_project.get("evidence"), list)
         ):
@@ -1456,6 +1470,8 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
+    if not require_supported_python():
+        return 2
     args = parse_args()
     try:
         projects_root = validate_projects_root(args.projects_root)

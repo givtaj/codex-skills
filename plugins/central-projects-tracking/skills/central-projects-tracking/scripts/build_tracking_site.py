@@ -15,6 +15,7 @@ from typing import Any
 import collect_portfolio_facts as collector
 import validate_portfolio_snapshot as snapshot_validator
 import validate_tracking_site as site_validator
+from runtime_support import require_supported_python
 
 
 TEMPLATE_ROOT = Path(__file__).resolve().parent.parent / "assets" / "site"
@@ -217,6 +218,8 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
+    if not require_supported_python():
+        return 2
     args = parse_args()
     try:
         output = build_site(args.snapshot, args.projects_root, args.output_dir)

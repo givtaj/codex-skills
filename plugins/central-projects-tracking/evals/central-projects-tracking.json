@@ -43,7 +43,8 @@
       "expected_activation": "activate",
       "expected_behavior": [
         "Recognize multi-project portfolio scope",
-        "Rank verified blockers, decisions, integration risks, stale evidence, then unknown work",
+        "Rank attention by material consequence and urgency together with evidence strength and freshness",
+        "Use the category hierarchy only as a default or tie-breaker among comparable items",
         "Avoid invented health or completion claims",
         "Create the local tracking site when output authority is supplied"
       ]

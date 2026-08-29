@@ -176,6 +176,7 @@ h3 { letter-spacing: -.025em; }
 .metric-attention strong { color: var(--orange); }
 
 .control-grid { display: grid; grid-template-columns: minmax(0, 1fr) 350px; gap: 1.3rem; }
+.control-grid > *, .brief-rail > *, .focus-panel { min-width: 0; }
 .panel { border: 1px solid var(--line); background: rgba(23,31,36,.8); }
 .panel-heading { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-end; padding: 1.5rem 1.6rem; border-bottom: 1px solid var(--line); }
 .panel-heading h2 { margin: 0; }
@@ -183,7 +184,7 @@ h3 { letter-spacing: -.025em; }
 .text-action, .system-link { padding: .5rem 0; background: none; color: var(--blue); font-size: .78rem; font-weight: 700; }
 .brief-rail { display: grid; align-content: start; gap: 1.3rem; }
 
-.project-table { overflow-x: auto; }
+.project-table { min-width: 0; max-width: 100%; overflow-x: auto; }
 .table-head, .project-row { display: grid; grid-template-columns: 52px minmax(270px, 1.5fr) minmax(115px, .6fr) minmax(125px, .7fr) minmax(130px, .7fr) minmax(125px, .65fr) 30px; align-items: center; min-width: 930px; }
 .table-head { min-height: 44px; padding: 0 1.2rem; border-bottom: 1px solid var(--line); color: var(--faint); font-family: var(--mono); font-size: .62rem; letter-spacing: .08em; text-transform: uppercase; }
 .project-row { width: 100%; min-height: 92px; padding: 0 1.2rem; border: 0; border-bottom: 1px solid var(--line); background: none; text-align: left; cursor: pointer; }

@@ -15,6 +15,7 @@ from typing import Any
 
 import collect_portfolio_facts as collector
 import validate_portfolio_snapshot as snapshot_validator
+from runtime_support import require_supported_python
 
 
 SITE_SCHEMA_VERSION = 1
@@ -329,6 +330,8 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
+    if not require_supported_python():
+        return 2
     args = parse_args()
     try:
         projects_root = collector.validate_projects_root(args.projects_root)

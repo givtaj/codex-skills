@@ -79,7 +79,9 @@ Sanitization is a technical check, not permission to publish. Project names, pri
 
 ## Attention policy
 
-Use this order:
+Rank attention by material consequence and urgency together with evidence strength and freshness. A high-consequence, time-sensitive item may outrank the default category order when its support is at least as strong. Do not promote weak speculation over verified evidence merely because the hypothetical consequence is severe.
+
+Use this category order as a default or tie-breaker among otherwise comparable items:
 
 1. Verified failure or blocker.
 2. Explicit unresolved decision.
@@ -87,4 +89,4 @@ Use this order:
 4. Materially stale evidence.
 5. New or unreviewed work with an unknown state.
 
-Every attention item must state the current state, evidence basis, specific risk, and one executable next move. Never invent severity, an owner, or a deadline.
+Every attention item must state the current state, evidence basis, specific risk, and one executable next move. Never invent severity, urgency, an owner, or a deadline.

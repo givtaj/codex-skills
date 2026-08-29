@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import copy
+import io
 import json
 import os
 import shutil
@@ -21,6 +22,7 @@ SCRIPT_DIRECTORY = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPT_DIRECTORY))
 
 import collect_portfolio_facts as collector
+import runtime_support
 import validate_portfolio_snapshot as snapshot_validator
 
 
@@ -511,6 +513,185 @@ class PortfolioWorkflowTests(unittest.TestCase):
 
     def test_git_environment_disables_lazy_fetch(self) -> None:
         self.assertEqual(collector.git_environment()["GIT_NO_LAZY_FETCH"], "1")
+
+    def test_runtime_preflight_is_bounded_and_precedes_argument_parsing(self) -> None:
+        error = io.StringIO()
+        self.assertFalse(
+            runtime_support.require_supported_python((3, 9, 99), error)
+        )
+        self.assertEqual(
+            error.getvalue(),
+            '{"status":"failed","reason":"unsupported_python","required":"3.10+"}\n',
+        )
+        self.assertTrue(runtime_support.require_supported_python((3, 10, 0), error))
+
+        for module in (collector, snapshot_validator):
+            with self.subTest(module=module.__name__), mock.patch.object(
+                module,
+                "require_supported_python",
+                return_value=False,
+            ), mock.patch.object(
+                module,
+                "parse_args",
+                side_effect=AssertionError("argument parsing must not run"),
+            ):
+                self.assertEqual(module.main(), 2)
+
+    def test_network_location_shaped_project_ids_are_rejected(self) -> None:
+        for value in (
+            "api.internal.example.com",
+            "api.internal.example.com.",
+            "api.internal.example.com-project",
+            "192.0.2.1",
+            "192.168.001.001",
+            "project.local:8443",
+        ):
+            with self.subTest(value=value):
+                self.assertFalse(collector.valid_project_id(value))
+        self.assertTrue(collector.valid_project_id("project-one"))
+
+        mapping = self.evidence_map()
+        mapping["projects"]["api.internal.example.com"] = []
+        with self.assertRaises(collector.CollectionError) as raised:
+            collector.load_evidence_map(self.write_evidence_map(mapping))
+        self.assertEqual(raised.exception.code, "evidence_map_project")
+
+    @unittest.skipUnless(shutil.which("git"), "Git is required")
+    def test_collector_skips_network_location_shaped_repository_names(self) -> None:
+        self.create_repository("api.internal.example.com")
+        self.create_repository("api.internal.example.com.")
+        self.create_repository("api.internal.example.com-project")
+        self.create_repository("192.0.2.1")
+        self.create_repository("192.168.001.001")
+
+        facts, partial = self.collect()
+
+        self.assertTrue(partial)
+        self.assertEqual(facts["projects"], [])
+        self.assertEqual(facts["skipped"]["unsafeNameEntryCount"], 5)
+
+    @unittest.skipUnless(shutil.which("git"), "Git is required")
+    def test_activity_ids_must_be_structured_safe_and_record_bound(self) -> None:
+        self.create_repository()
+        facts, _ = self.collect()
+        baseline = self.candidate_for(facts)
+        activity = baseline["activity"][0]
+
+        unsafe = copy.deepcopy(baseline)
+        unsafe["activity"][0]["id"] = "localhost:8443"
+        unsafe["contentDigest"] = snapshot_validator.content_digest(unsafe)
+        errors = snapshot_validator.validate_snapshot(unsafe, facts)
+        self.assertIn("snapshot:activity:0:id", errors)
+        self.assertIn("root.activity[0].id:unsafe-string", errors)
+
+        mismatches = (
+            (
+                "project-other:"
+                + activity["on"]
+                + ":commit:fixture",
+                "snapshot:activity:0:id-project",
+            ),
+            (
+                activity["projectId"] + ":2001-01-01:commit:fixture",
+                "snapshot:activity:0:id-date",
+            ),
+            (
+                activity["projectId"]
+                + ":"
+                + activity["on"]
+                + ":evidence:fixture",
+                "snapshot:activity:0:id-type",
+            ),
+        )
+        for identifier, expected_error in mismatches:
+            with self.subTest(identifier=identifier):
+                candidate = copy.deepcopy(baseline)
+                candidate["activity"][0]["id"] = identifier
+                candidate["contentDigest"] = snapshot_validator.content_digest(
+                    candidate
+                )
+                self.assertIn(
+                    expected_error,
+                    snapshot_validator.validate_snapshot(candidate, facts),
+                )
+
+    @unittest.skipUnless(shutil.which("git"), "Git is required")
+    def test_current_commit_claims_require_captured_repository_dates(self) -> None:
+        self.create_repository()
+        facts, _ = self.collect()
+        candidate = self.candidate_for(facts)
+        unsupported_date = "2001-01-01"
+
+        stale_last_activity = copy.deepcopy(candidate)
+        stale_last_activity["projects"][0]["lastActivity"] = {
+            "on": unsupported_date,
+            "kind": "commit",
+        }
+        stale_last_activity["contentDigest"] = snapshot_validator.content_digest(
+            stale_last_activity
+        )
+        self.assertIn(
+            "snapshot:project:project-one:last-activity:commit-evidence",
+            snapshot_validator.validate_snapshot(stale_last_activity, facts),
+        )
+
+        fabricated_activity = copy.deepcopy(candidate)
+        fabricated_activity["activity"][0]["on"] = unsupported_date
+        fabricated_activity["activity"][0]["id"] = (
+            "project-one:2001-01-01:commit:fixture"
+        )
+        fabricated_activity["contentDigest"] = snapshot_validator.content_digest(
+            fabricated_activity
+        )
+        self.assertIn(
+            "snapshot:activity:0:commit-evidence",
+            snapshot_validator.validate_snapshot(fabricated_activity, facts),
+        )
+
+    @unittest.skipUnless(shutil.which("git"), "Git is required")
+    def test_unborn_repository_cannot_support_current_commit_claims(self) -> None:
+        repository = self.projects_root / "project-one"
+        repository.mkdir()
+        self.run_git(repository, "init", "-q")
+        facts, partial = self.collect()
+        self.assertFalse(partial)
+        candidate = self.candidate_for(facts)
+        claim_date = facts["generatedAt"][:10]
+        candidate["projects"][0]["lastActivity"] = {
+            "on": claim_date,
+            "kind": "commit",
+        }
+        candidate["activity"] = [
+            {
+                "id": "project-one:" + claim_date + ":commit:invented",
+                "on": claim_date,
+                "type": "COMMIT",
+                "projectId": "project-one",
+                "note": "An unsupported local commit claim was recorded here.",
+            }
+        ]
+        candidate["contentDigest"] = snapshot_validator.content_digest(candidate)
+
+        errors = snapshot_validator.validate_snapshot(candidate, facts)
+        self.assertIn(
+            "snapshot:project:project-one:last-activity:commit-evidence",
+            errors,
+        )
+        self.assertIn("snapshot:activity:0:commit-evidence", errors)
+
+    @unittest.skipUnless(shutil.which("git"), "Git is required")
+    def test_previous_snapshot_commit_dates_remain_shape_only(self) -> None:
+        self.create_repository()
+        facts, _ = self.collect()
+        previous = self.candidate_for(facts)
+        previous["projects"][0]["lastActivity"]["on"] = "2001-01-01"
+        previous["activity"][0]["on"] = "2001-01-01"
+        previous["activity"][0]["id"] = (
+            "project-one:2001-01-01:commit:historical"
+        )
+        previous["contentDigest"] = snapshot_validator.content_digest(previous)
+
+        self.assertEqual(snapshot_validator.validate_previous_snapshot(previous), [])
 
     def test_public_text_rejects_punctuated_paths_and_file_uri(self) -> None:
         slash = chr(47)

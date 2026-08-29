@@ -27,7 +27,9 @@ Resolve explicit paths first:
 Run from the skill directory:
 
 ~~~bash
-python3 scripts/build_tracking_site.py FINAL_SNAPSHOT \
+TRACKING_PYTHON=ABSOLUTE_COMPATIBLE_PYTHON
+"$TRACKING_PYTHON" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 2)'
+"$TRACKING_PYTHON" scripts/build_tracking_site.py FINAL_SNAPSHOT \
   --projects-root PROJECTS_ROOT \
   --output-dir SITE_OUTPUT
 ~~~
@@ -37,12 +39,12 @@ The builder refuses symlinked inputs, a snapshot or output inside the scanned ro
 Validate again at the handoff boundary:
 
 ~~~bash
-python3 scripts/validate_tracking_site.py SITE_OUTPUT \
+"$TRACKING_PYTHON" scripts/validate_tracking_site.py SITE_OUTPUT \
   --snapshot FINAL_SNAPSHOT \
   --projects-root PROJECTS_ROOT
 ~~~
 
-Both commands use Python's standard library only. The supported runtime is a POSIX environment such as Linux, macOS, or WSL with Python 3.10+ and Git available for collection.
+Both commands use Python's standard library only. Resolve `TRACKING_PYTHON` to one absolute host-provided Python 3.10+ executable and reuse it; do not assume bare `python3` is compatible. If none is available, stop when the version check returns 2. The supported runtime is a POSIX environment such as Linux, macOS, or WSL with Python 3.10+ and Git available for collection.
 
 ## Preview and inspect
 

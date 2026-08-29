@@ -11,6 +11,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 
@@ -114,7 +115,7 @@ class TrackingSiteTests(unittest.TestCase):
         snapshot = self.write_snapshot()
         output = builder.build_site(self.snapshot_path, self.projects_root, self.output)
 
-        self.assertEqual(output, self.output)
+        self.assertEqual(output, self.output.resolve())
         self.assertEqual(output.stat().st_mode & 0o777, 0o700)
         for relative in site_validator.REQUIRED_DIRECTORIES:
             self.assertEqual((output / relative).stat().st_mode & 0o777, 0o700)
@@ -144,6 +145,37 @@ class TrackingSiteTests(unittest.TestCase):
         index = (output / "index.html").read_text(encoding="utf-8")
         self.assertIn("Content-Security-Policy", index)
         self.assertIn("connect-src 'none'", index)
+
+    def test_site_entry_points_preflight_runtime_before_arguments(self) -> None:
+        for module in (builder, site_validator):
+            with self.subTest(module=module.__name__), mock.patch.object(
+                module,
+                "require_supported_python",
+                return_value=False,
+            ), mock.patch.object(
+                module,
+                "parse_args",
+                side_effect=AssertionError("argument parsing must not run"),
+            ):
+                self.assertEqual(module.main(), 2)
+
+    def test_site_rejects_network_location_shaped_project_ids(self) -> None:
+        snapshot = self.snapshot()
+        unsafe_id = "api.internal.example.com"
+        snapshot["projects"][0]["id"] = unsafe_id
+        snapshot["brief"]["focusProjectIds"] = [unsafe_id]
+        snapshot["brief"]["readyProjectIds"] = [unsafe_id]
+        snapshot["activity"][0]["projectId"] = unsafe_id
+        snapshot["activity"][0]["id"] = (
+            unsafe_id + ":2026-08-26:commit:refine"
+        )
+        snapshot["contentDigest"] = snapshot_validator.content_digest(snapshot)
+        self.write_snapshot(snapshot)
+
+        errors = snapshot_validator.validate_snapshot_document(snapshot)
+        self.assertIn("previous:project:0:id", errors)
+        with self.assertRaisesRegex(builder.BuildError, "invalid_snapshot"):
+            builder.build_site(self.snapshot_path, self.projects_root, self.output)
 
     def test_builder_enforces_private_modes_independent_of_umask(self) -> None:
         self.write_snapshot()

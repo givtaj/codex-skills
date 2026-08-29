@@ -18,11 +18,12 @@ from typing import Any
 
 from collect_portfolio_facts import (
     EVIDENCE_ID_RE,
-    PROJECT_ID_RE,
     compute_source_digest,
+    valid_project_id,
     validate_projects_root,
     within,
 )
+from runtime_support import require_supported_python
 
 
 SCHEMA_VERSION = 2
@@ -173,7 +174,13 @@ STAGES = {"Unknown", "Idea", "Foundation", "Build", "Integration", "Live"}
 TONES = {"danger", "warn", "good", "info", "neutral"}
 ACTIVITY_KINDS = {"commit", "evidence", "build", "study", "none"}
 ACTIVITY_TYPES = {"COMMIT", "EVIDENCE", "BUILD", "STUDY"}
-ACTIVITY_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9:._-]{0,160}$")
+ACTIVITY_ID_RE = re.compile(
+    r"^(?P<project_id>[A-Za-z0-9][A-Za-z0-9._-]{0,127}):"
+    r"(?P<date>\d{4}-\d{2}-\d{2}):"
+    r"(?P<activity_type>commit|evidence|build|study):"
+    r"(?P<label>[a-z0-9][a-z0-9-]{0,62})$"
+)
+MAX_ACTIVITY_ID_CHARS = 161
 BRANCH_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]{0,159}$")
 EVIDENCE_STATES = {"present", "missing", "rejected"}
 
@@ -269,6 +276,12 @@ def append_sanitization_errors(v: Validator, value: Any, root: str) -> None:
             or ".focusProjectIds[" in location
             or ".readyProjectIds[" in location
         )
+        is_activity_id = (
+            location.endswith(".id")
+            and isinstance(text, str)
+            and len(text) <= MAX_ACTIVITY_ID_CHARS
+            and bool(ACTIVITY_ID_RE.fullmatch(text))
+        )
         if (
             not is_structured_time
             and (
@@ -280,9 +293,9 @@ def append_sanitization_errors(v: Validator, value: Any, root: str) -> None:
             or contains_ipv6(text)
             or ABSOLUTE_PATH_RE.search(text)
             or UNC_PATH_RE.search(text)
-            or (not is_structured_id and HOSTNAME_RE.search(text))
+            or HOSTNAME_RE.search(text)
             or (
-                not is_structured_id
+                not is_activity_id
                 and ":" in text
                 and HOST_PORT_RE.search(text)
             )
@@ -531,7 +544,7 @@ def validate_facts(facts: Any) -> list[str]:
                 continue
             exact_keys(v, project, FACT_PROJECT_KEYS, prefix + ":keys")
             project_id = project.get("id")
-            valid_id = isinstance(project_id, str) and bool(PROJECT_ID_RE.fullmatch(project_id))
+            valid_id = valid_project_id(project_id)
             v.require(valid_id, prefix + ":id")
             if valid_id:
                 project_ids.append(project_id)
@@ -691,6 +704,7 @@ def validate_last_activity(
     value: Any,
     prefix: str,
     generated: datetime | None,
+    commit_dates: set[str] | None = None,
 ) -> None:
     v.require(isinstance(value, dict), prefix + ":object")
     if not isinstance(value, dict):
@@ -710,6 +724,26 @@ def validate_last_activity(
         v.require(observed is not None, prefix + ":required-date")
     if observed and generated:
         v.require(observed <= generated.date(), prefix + ":future")
+    if kind == "commit" and observed is not None and commit_dates is not None:
+        v.require(observed_value in commit_dates, prefix + ":commit-evidence")
+
+
+def repository_commit_dates(value: Any) -> set[str]:
+    """Return commit dates directly observed in one repository fact object."""
+    if not isinstance(value, dict):
+        return set()
+    commits: list[Any] = [value.get("lastCommit")]
+    outgoing = value.get("outgoing")
+    if isinstance(outgoing, dict) and isinstance(outgoing.get("commits"), list):
+        commits.extend(outgoing["commits"])
+    observed: set[str] = set()
+    for commit in commits:
+        if not isinstance(commit, dict):
+            continue
+        timestamp = parse_timestamp(commit.get("at"))
+        if timestamp is not None:
+            observed.add(timestamp.date().isoformat())
+    return observed
 
 
 def validate_activity_records(
@@ -718,6 +752,7 @@ def validate_activity_records(
     present_ids: set[str],
     generated: datetime | None,
     prefix: str,
+    commit_dates_by_project: dict[str, set[str]] | None = None,
 ) -> None:
     v.require(isinstance(value, list) and len(value) <= 8, prefix + ":list")
     if not isinstance(value, list):
@@ -731,9 +766,15 @@ def validate_activity_records(
             continue
         exact_keys(v, item, ACTIVITY_KEYS, item_prefix + ":keys")
         identifier = item.get("id")
+        identifier_match = (
+            ACTIVITY_ID_RE.fullmatch(identifier)
+            if isinstance(identifier, str)
+            else None
+        )
         valid_identifier = (
             isinstance(identifier, str)
-            and bool(ACTIVITY_ID_RE.fullmatch(identifier))
+            and len(identifier) <= MAX_ACTIVITY_ID_CHARS
+            and identifier_match is not None
         )
         v.require(valid_identifier, item_prefix + ":id")
         if valid_identifier:
@@ -749,6 +790,31 @@ def validate_activity_records(
             isinstance(project_id, str) and project_id in present_ids,
             item_prefix + ":project",
         )
+        if identifier_match is not None:
+            v.require(
+                identifier_match.group("project_id") == project_id,
+                item_prefix + ":id-project",
+            )
+            v.require(
+                identifier_match.group("date") == item.get("on"),
+                item_prefix + ":id-date",
+            )
+            v.require(
+                isinstance(activity_type, str)
+                and identifier_match.group("activity_type")
+                == activity_type.lower(),
+                item_prefix + ":id-type",
+            )
+        if (
+            activity_type == "COMMIT"
+            and observed is not None
+            and isinstance(project_id, str)
+            and commit_dates_by_project is not None
+        ):
+            v.require(
+                item.get("on") in commit_dates_by_project.get(project_id, set()),
+                item_prefix + ":commit-evidence",
+            )
         v.require(valid_text(item.get("note"), 8, 320), item_prefix + ":note")
         if isinstance(item.get("on"), str) and isinstance(identifier, str):
             ordering.append((item["on"], identifier))
@@ -824,7 +890,7 @@ def validate_previous_snapshot(previous: Any) -> list[str]:
                 continue
             exact_keys(v, project, SNAPSHOT_PROJECT_KEYS, prefix + ":keys")
             project_id = project.get("id")
-            if isinstance(project_id, str) and PROJECT_ID_RE.fullmatch(project_id):
+            if valid_project_id(project_id):
                 project_ids.append(project_id)
                 prefix = "previous:project:" + project_id
             else:
@@ -832,7 +898,7 @@ def validate_previous_snapshot(previous: Any) -> list[str]:
             v.require(valid_text(project.get("name"), 1, 100), prefix + ":name")
             present = project.get("present")
             v.require(isinstance(present, bool), prefix + ":present")
-            if isinstance(project_id, str) and PROJECT_ID_RE.fullmatch(project_id):
+            if valid_project_id(project_id):
                 if present is True:
                     present_ids.add(project_id)
                 elif present is False:
@@ -1055,7 +1121,7 @@ def validate_snapshot(
             if not isinstance(project, dict):
                 continue
             project_id = project.get("id")
-            if not isinstance(project_id, str) or not PROJECT_ID_RE.fullmatch(project_id):
+            if not valid_project_id(project_id):
                 v.errors.append("snapshot:project:id")
                 continue
             project_ids.append(project_id)
@@ -1084,14 +1150,19 @@ def validate_snapshot(
                 prefix + ":repository",
                 generated,
             )
+            fact_project = fact_projects.get(project_id)
             validate_last_activity(
                 v,
                 project.get("lastActivity"),
                 prefix + ":last-activity",
                 generated,
+                (
+                    repository_commit_dates(fact_project.get("repository"))
+                    if fact_project
+                    else None
+                ),
             )
 
-            fact_project = fact_projects.get(project_id)
             if fact_project:
                 v.require(present is True, prefix + ":current-present")
                 if repository is not None:
@@ -1151,6 +1222,10 @@ def validate_snapshot(
         set(fact_projects),
         generated,
         "snapshot:activity",
+        {
+            project_id: repository_commit_dates(project.get("repository"))
+            for project_id, project in fact_projects.items()
+        },
     )
     if previous:
         previous_generated = parse_timestamp(previous.get("generatedAt"))
@@ -1244,6 +1319,8 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
+    if not require_supported_python():
+        return 2
     args = parse_args()
     try:
         projects_root = validate_projects_root(args.projects_root)

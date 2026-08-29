@@ -21,7 +21,7 @@ All notable changes to published plugins are recorded here. Versions follow sema
 ### Validation status
 
 - Local structural, repository, privacy, packaging, and public Git identity checks passed for `0.1.0`.
-- Focused local host replay covers explicit activation, boundary routing, and scheduled no-change behavior; complete golden-set replay across supported hosts remains pending.
+- Host-level replay of the final candidate remains pending; no superseded activation result is claimed as current evidence. Task reconciliation, organization, scheduled comparison, and complete golden-set replay across supported hosts remain pending.
 
 ## github-repository-guardrails 0.2.1 - 2026-08-27
 

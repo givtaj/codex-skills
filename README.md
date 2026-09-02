@@ -20,6 +20,7 @@ Then install a plugin:
 codex plugin add status-review-dashboard@givtaj-skills
 codex plugin add github-repository-guardrails@givtaj-skills
 codex plugin add central-projects-tracking@givtaj-skills
+codex plugin add terminal-wireframe-sketching@givtaj-skills
 ```
 
 Start a new task after installation so the new skill is loaded. Invoke a skill explicitly by name, or let the host select it when the request matches its description.
@@ -31,6 +32,7 @@ Start a new task after installation so the new skill is loaded. Invoke a skill e
 | [`status-review-dashboard`](./plugins/status-review-dashboard/) | Productivity · Project operations | Public preview `0.1.1` | Creates compact, evidence-based status-review dashboards. Results are interactive when the host supports that capability and preserve the same hierarchy in Markdown otherwise. |
 | [`github-repository-guardrails`](./plugins/github-repository-guardrails/) | Developer tools · Project operations | Public preview `0.2.1` | Establishes, maintains, and audits repository-management authorities with optional GitHub issue and Project traceability. |
 | [`central-projects-tracking`](./plugins/central-projects-tracking/) | Productivity · Project operations | Public preview `0.1.0` | Builds a validated portfolio snapshot and complete private local tracking website across approved repositories, without mutating or fetching them. |
+| [`terminal-wireframe-sketching`](./plugins/terminal-wireframe-sketching/) | Creativity | Public preview `0.1.0` | Turns rough sketches, design context, workflows, and software architecture into compact terminal-style wireframes for confirmation. |
 
 The marketplace category is the install-surface category. The catalog may cross-list a plugin under other relevant domains without duplicating its files.
 
@@ -102,6 +104,7 @@ Reinstall the plugin if its installed copy needs refreshing:
 codex plugin add status-review-dashboard@givtaj-skills
 codex plugin add github-repository-guardrails@givtaj-skills
 codex plugin add central-projects-tracking@givtaj-skills
+codex plugin add terminal-wireframe-sketching@givtaj-skills
 ```
 
 ## License

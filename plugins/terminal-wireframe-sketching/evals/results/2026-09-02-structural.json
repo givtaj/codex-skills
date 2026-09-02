@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "skill": "terminal-wireframe-sketching",
+  "plugin_version": "0.1.0",
+  "date": "2026-09-02",
+  "scope": "structural",
+  "status": "passed",
+  "checks": [
+    "repository marketplace validation",
+    "skill structure validation",
+    "plugin manifest and packaged-skill validation"
+  ],
+  "behavioral_replay": {
+    "status": "pending",
+    "reason": "The initial golden request set has not yet been replayed across every supported host surface."
+  }
+}

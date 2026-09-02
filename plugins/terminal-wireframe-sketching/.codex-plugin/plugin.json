@@ -1,0 +1,40 @@
+{
+  "name": "terminal-wireframe-sketching",
+  "version": "0.1.0",
+  "description": "Turn rough sketches, design context, workflows, and software architecture into compact terminal-style wireframes for confirmation.",
+  "author": {
+    "name": "givtaj",
+    "url": "https://github.com/givtaj"
+  },
+  "homepage": "https://github.com/givtaj/codex-skills/tree/main/plugins/terminal-wireframe-sketching",
+  "repository": "https://github.com/givtaj/codex-skills",
+  "license": "MIT",
+  "keywords": [
+    "ascii-art",
+    "architecture",
+    "design",
+    "terminal",
+    "wireframe"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Terminal Wireframe Sketching",
+    "shortDescription": "Sketch interfaces and architecture in terminal text",
+    "longDescription": "Convert a user-provided sketch, screenshot, workflow, design brief, repository context, or software architecture into a compact monospaced wireframe that makes layout and relationships easy to confirm before implementation or visual polish.",
+    "developerName": "givtaj",
+    "category": "Creativity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/givtaj/codex-skills/tree/main/plugins/terminal-wireframe-sketching",
+    "privacyPolicyURL": "https://github.com/givtaj/codex-skills/blob/main/PRIVACY.md",
+    "defaultPrompt": [
+      "Turn this rough sketch into a terminal wireframe.",
+      "Sketch this application flow as connected text screens.",
+      "Map this architecture as a compact terminal diagram."
+    ],
+    "brandColor": "#22C55E",
+    "screenshots": []
+  }
+}

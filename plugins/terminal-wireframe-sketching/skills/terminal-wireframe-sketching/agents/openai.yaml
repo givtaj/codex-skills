@@ -1,0 +1,7 @@
+interface:
+  display_name: "Terminal Wireframe Sketching"
+  short_description: "Turn sketches and context into terminal wireframes"
+  default_prompt: "Use $terminal-wireframe-sketching to turn this sketch or architecture into a clear terminal wireframe."
+
+policy:
+  allow_implicit_invocation: true

@@ -10,6 +10,15 @@ All notable changes to published plugins are recorded here. Versions follow sema
 - Required global-name and six-month durability evidence for skill pull requests, with a trusted-base PR gate, CODEOWNER routing, and conservative CI checks for objective identity and model-release coupling.
 - Exact evaluation-result schema validation and mutation-focused tests for plugin versions, dates, checks, and behavioral-replay metadata.
 
+## terminal-wireframe-sketching 0.1.0 - 2026-09-02
+
+### Added
+
+- Initial public preview of `terminal-wireframe-sketching`.
+- Terminal-style interface, navigation, workflow, hierarchy, state, and software-architecture wireframes derived from supplied sketches or relevant context.
+- Fidelity and uncertainty rules that preserve source structure, distinguish inference, handle illegible or conflicting evidence, and keep confirmation separate from polished design or implementation.
+- Native plugin packaging, Creativity marketplace/catalog entries, privacy disclosure, and labelled activation evaluation cases.
+
 ## github-repository-guardrails 0.2.1 - 2026-08-27
 
 ### Fixed

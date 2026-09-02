@@ -7,6 +7,7 @@ All notable changes to published plugins are recorded here. Versions follow sema
 ### Added
 
 - Repository-wide canonical naming, durable-language, public-safety, and golden-request import gates.
+- Required global-name and six-month durability evidence for skill pull requests, with a trusted-base PR gate, CODEOWNER routing, and conservative CI checks for objective identity and model-release coupling.
 - Exact evaluation-result schema validation and mutation-focused tests for plugin versions, dates, checks, and behavioral-replay metadata.
 
 ## loose-thread-finder 0.1.0 - 2026-08-29

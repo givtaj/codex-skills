@@ -9,6 +9,7 @@ import os
 import re
 import subprocess
 import sys
+import unicodedata
 from collections.abc import Iterator
 from datetime import date
 from pathlib import Path
@@ -30,6 +31,33 @@ except ImportError:
 ROOT = Path(__file__).resolve().parents[1]
 MARKETPLACE_PATH = ROOT / ".agents" / "plugins" / "marketplace.json"
 NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+MAX_CANONICAL_NAME_LENGTH = 64
+SCAFFOLD_SKILL_NAMES = {
+    "example-skill",
+    "my-skill",
+    "sample-skill",
+    "test-skill",
+    "untitled-skill",
+}
+FULL_DATE_NAME_RE = re.compile(
+    r"(?:^|-)(?:19|20)[0-9]{2}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])(?:-|$)"
+)
+DATED_PERIOD_NAME_RE = re.compile(
+    r"(?ix)(?:^|-)"
+    r"(?:"
+    r"(?:daily|weekly|monthly|quarterly)(?:-[a-z0-9]+){0,3}-(?:19|20)[0-9]{2}"
+    r"|(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|"
+    r"jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|"
+    r"dec(?:ember)?)-(?:19|20)[0-9]{2}"
+    r"|q[1-4]-(?:19|20)[0-9]{2}"
+    r")(?:-|$)"
+)
+WORK_ITEM_NAME_RE = re.compile(
+    r"(?:^|-)(?:task|issue|pr|pull-request|thread)-(?:[0-9]+|[0-9a-f]{8,})(?:-|$)"
+)
+UUID_NAME_RE = re.compile(
+    r"(?:^|-)[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?:-|$)"
+)
 SEMVER_RE = re.compile(
     r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)"
     r"(?:-((?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)"
@@ -39,7 +67,25 @@ SEMVER_RE = re.compile(
 HEX_COLOR_RE = re.compile(r"^#[0-9A-Fa-f]{6}$")
 OBJECT_ID_BYTES_RE = re.compile(rb"^[0-9a-f]{40}(?:[0-9a-f]{24})?$")
 MODEL_VERSION_RE = re.compile(
-    r"(?i)\b(?:gpt|claude|gemini|llama)[- ]?\d+(?:\.\d+)*\b"
+    r"(?ix)\b(?:"
+    r"(?:gpt|chatgpt)[\s_-]*[0-9]+(?:[.-][0-9]+)*"
+    r"|claude(?:[\s_-]+(?:opus|sonnet|haiku))?[\s_-]*[0-9]+(?:[.-][0-9]+)*"
+    r"|gemini[\s_-]*[0-9]+(?:[.-][0-9]+)*(?:[\s_-]+(?:pro|flash|ultra|thinking|model))"
+    r"|llama[\s_-]*[0-9]+(?:[.-][0-9]+)*"
+    r"|codex(?:[\s_-]+(?:spark|[0-9]+(?:[.-][0-9]+)*))"
+    r"|openai[\s_-]+o[1-9]"
+    r"|o[1-9][\s_-]+(?:mini|pro|max|reasoning|model)"
+    r"|o[1-9](?:[\s_-]+[a-z0-9]+){0,3}[\s_-]+(?:agent|assistant|reviewer|reasoner)"
+    r"|(?:sol|terra|luna)[\s_-]+(?:ultra|model)"
+    r")\b"
+)
+LOWERCASE_O_MODEL_INSTRUCTION_RE = re.compile(
+    r"\b(?i:use|run|ask|delegate(?:\s+to)?|select|choose|require(?:s|d)?)\b"
+    r"[^\n.!?]{0,48}\bo[1-9]\b"
+)
+MODEL_REASONING_BINDING_RE = re.compile(
+    r"(?ix)\b(?:sol|terra|luna)\b[^\n.!?]{0,48}"
+    r"\b(?:minimal|low|medium|high|xhigh|max|ultra)\s+reasoning\b"
 )
 PERSONAL_PATH_CANDIDATE_RE = re.compile(
     r"file:///(?P<file_root>Users|home)/(?P<file_user>[^/\\\s`\"'<>:]+)"
@@ -247,6 +293,70 @@ class ValidationError(Exception):
 def require(condition: bool, message: str) -> None:
     if not condition:
         raise ValidationError(message)
+
+
+def normalize_portability_text(value: str) -> str:
+    """Normalize punctuation variants before applying narrow portability checks."""
+
+    normalized = unicodedata.normalize("NFKC", value)
+    normalized = "".join(character for character in normalized if unicodedata.category(character) != "Cf")
+    return "".join(
+        "-"
+        if unicodedata.category(character) == "Pd" or character == "\N{MINUS SIGN}"
+        else character
+        for character in normalized
+    )
+
+
+def validate_canonical_name(value: object, label: str) -> str:
+    """Reject objective identity hazards; semantic global clarity remains a review decision."""
+
+    require(
+        isinstance(value, str) and NAME_RE.fullmatch(value) is not None,
+        f"{label}: invalid name",
+    )
+    require(
+        len(value) <= MAX_CANONICAL_NAME_LENGTH,
+        f"{label}: canonical name exceeds {MAX_CANONICAL_NAME_LENGTH} characters",
+    )
+    require(value not in SCAFFOLD_SKILL_NAMES, f"{label}: replace the scaffold name")
+    require(
+        FULL_DATE_NAME_RE.search(value) is None and DATED_PERIOD_NAME_RE.search(value) is None,
+        f"{label}: canonical name must not be bound to a calendar date or reporting period",
+    )
+    require(
+        WORK_ITEM_NAME_RE.search(value) is None and UUID_NAME_RE.search(value) is None,
+        f"{label}: canonical name must not be bound to a task, issue, pull request, or thread",
+    )
+    require(
+        MODEL_VERSION_RE.search(normalize_portability_text(value)) is None,
+        f"{label}: canonical name must not be bound to a model release",
+    )
+    return value
+
+
+def validate_core_skill_language(text: str, label: str) -> None:
+    """Block unmistakably volatile core bindings while allowing routed compatibility notes."""
+
+    normalized = normalize_portability_text(text)
+    require(
+        MODEL_VERSION_RE.search(normalized) is None,
+        f"{label}: model release belongs in a routed reference",
+    )
+    require(
+        LOWERCASE_O_MODEL_INSTRUCTION_RE.search(normalized) is None
+        and MODEL_REASONING_BINDING_RE.search(normalized) is None,
+        f"{label}: model-specific execution instruction belongs in a routed reference",
+    )
+    normalized_casefold = normalized.casefold()
+    require(
+        "window.openai" not in normalized_casefold,
+        f"{label}: host API belongs in a routed reference",
+    )
+    require(
+        "codex://" not in normalized_casefold,
+        f"{label}: host URI belongs in a routed reference",
+    )
 
 
 def reject_unknown_fields(payload: dict, allowed: set[str], label: str) -> None:
@@ -1454,10 +1564,9 @@ def validate_skill(
     plugin_version: str,
 ) -> str:
     metadata = frontmatter(skill_md)
-    skill_name = metadata.get("name")
+    skill_name = validate_canonical_name(metadata.get("name"), relative(skill_md))
     description = metadata.get("description", "").strip()
     require(skill_name == skill_md.parent.name, f"{relative(skill_md)}: name must match folder")
-    require(NAME_RE.fullmatch(skill_name or "") is not None, f"{relative(skill_md)}: invalid name")
     require(skill_name not in skill_names, f"duplicate skill name: {skill_name}")
     require(80 <= len(description) <= 500, f"{relative(skill_md)}: description must be 80-500 characters")
     require("Do not use" in description, f"{relative(skill_md)}: description needs a Do not use boundary")
@@ -1467,9 +1576,7 @@ def validate_skill(
     )
 
     text = skill_md.read_text(encoding="utf-8")
-    require(MODEL_VERSION_RE.search(text) is None, f"{relative(skill_md)}: model version belongs in a reference")
-    require("window.openai" not in text, f"{relative(skill_md)}: host API belongs in a reference")
-    require("codex://" not in text, f"{relative(skill_md)}: host URI belongs in a reference")
+    validate_core_skill_language(text, relative(skill_md))
     require(
         not has_personal_absolute_path(text),
         f"{relative(skill_md)}: contains a personal absolute path",
@@ -1482,7 +1589,7 @@ def validate_skill(
     validate_agent_metadata(skill_md.parent)
     validate_eval(plugin_dir, skill_name or "", plugin_version)
     skill_names.add(skill_name or "")
-    return skill_name or ""
+    return skill_name
 
 
 def validate() -> tuple[int, int, int]:
@@ -1519,8 +1626,7 @@ def validate() -> tuple[int, int, int]:
             ALLOWED_MARKETPLACE_ENTRY_FIELDS,
             "marketplace plugin entry",
         )
-        name = entry.get("name")
-        require(isinstance(name, str) and NAME_RE.fullmatch(name), f"invalid plugin name: {name!r}")
+        name = validate_canonical_name(entry.get("name"), "marketplace plugin")
         require(name not in entry_names, f"duplicate marketplace plugin: {name}")
         entry_names.add(name)
 

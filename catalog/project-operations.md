@@ -11,3 +11,7 @@
 ## Central Projects Tracking
 
 [`central-projects-tracking`](../plugins/central-projects-tracking/) discovers an approved set of local repositories, combines bounded Git facts with allowlisted evidence, finalizes a sanitized portfolio snapshot, and builds a complete local project-tracking website. It is cross-listed here while retaining `Productivity` as its marketplace category.
+
+## Loose Thread Finder
+
+[`loose-thread-finder`](../plugins/loose-thread-finder/) reconnects important task history with durable repository evidence, detects forgotten or unintegrated work, and returns a bounded continuity review with focused next actions. It is cross-listed here while retaining `Productivity` as its marketplace category.

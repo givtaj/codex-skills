@@ -10,6 +10,20 @@ All notable changes to published plugins are recorded here. Versions follow sema
 - Required global-name and six-month durability evidence for skill pull requests, with a trusted-base PR gate, CODEOWNER routing, and conservative CI checks for objective identity and model-release coupling.
 - Exact evaluation-result schema validation and mutation-focused tests for plugin versions, dates, checks, and behavioral-replay metadata.
 
+## loose-thread-finder 0.1.0 - 2026-08-29
+
+### Added
+
+- Initial public preview for recovering forgotten project intent, unfinished work, stalled handoffs, and related task families from bounded task history and repository evidence.
+- Evidence precedence, continuity classifications, material-risk ranking, one-action handoffs, and explicit boundaries around durable repository truth.
+- Read-only scheduled-review behavior with an exact no-material-change sentinel and separately authorized manual task organization.
+- Host-adapter guidance and a labelled golden request set covering direct, indirect, incomplete, follow-up, boundary, negative, and edge behavior.
+
+### Validation status
+
+- Local structural, repository, privacy, packaging, and public Git identity checks passed for `0.1.0`.
+- Host-level replay of the final candidate remains pending; no superseded activation result is claimed as current evidence. Task reconciliation, organization, scheduled comparison, and complete golden-set replay across supported hosts remain pending.
+
 ## github-repository-guardrails 0.2.1 - 2026-08-27
 
 ### Fixed

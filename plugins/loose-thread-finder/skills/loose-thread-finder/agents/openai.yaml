@@ -1,0 +1,8 @@
+interface:
+  display_name: "Loose Thread Finder"
+  short_description: "Find forgotten project work and next actions"
+  brand_color: "#D97706"
+  default_prompt: "Use $loose-thread-finder to find forgotten project work and the next actions that matter."
+
+policy:
+  allow_implicit_invocation: true

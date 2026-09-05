@@ -20,6 +20,7 @@ Then install a plugin:
 codex plugin add status-review-dashboard@givtaj-skills
 codex plugin add github-repository-guardrails@givtaj-skills
 codex plugin add central-projects-tracking@givtaj-skills
+codex plugin add loose-thread-finder@givtaj-skills
 codex plugin add coordinator-mode@givtaj-skills
 ```
 
@@ -32,6 +33,7 @@ Start a new task after installation so the new skill is loaded. Invoke a skill e
 | [`status-review-dashboard`](./plugins/status-review-dashboard/) | Productivity · Project operations | Public preview `0.1.1` | Creates compact, evidence-based status-review dashboards. Results are interactive when the host supports that capability and preserve the same hierarchy in Markdown otherwise. |
 | [`github-repository-guardrails`](./plugins/github-repository-guardrails/) | Developer tools · Project operations | Public preview `0.2.1` | Establishes, maintains, and audits repository-management authorities with optional GitHub issue and Project traceability. |
 | [`central-projects-tracking`](./plugins/central-projects-tracking/) | Productivity · Project operations | Public preview `0.1.0` | Builds a validated portfolio snapshot and complete private local tracking website across approved repositories, without mutating or fetching them. |
+| [`loose-thread-finder`](./plugins/loose-thread-finder/) | Productivity · Project operations | Public preview `0.1.0` | Recovers forgotten project intent and unfinished work from task history and repository evidence, reconnects related tasks, and surfaces focused next actions. |
 | [`coordinator-mode`](./plugins/coordinator-mode/) | Developer tools · Project operations | Public preview `0.1.0` | Coordinates complex engineering work through bounded delegation, single-writer ownership, drift control, and evidence-backed integration. |
 
 The marketplace category is the install-surface category. The catalog may cross-list a plugin under other relevant domains without duplicating its files.
@@ -86,7 +88,7 @@ The public repository also uses GitHub secret scanning and push protection. Loca
 
 ## Quality model
 
-The repository follows current OpenAI guidance: one recognizable user goal per skill, concise trigger descriptions with explicit boundaries, progressive disclosure for supporting resources, stable plugin identities, and labelled activation tests. Host-specific implementation details live in references so the core workflow remains understandable across model and product generations.
+The repository follows current OpenAI guidance: one recognizable user goal per skill, concise trigger descriptions with explicit boundaries, progressive disclosure for supporting resources, stable plugin identities, and labelled activation tests. Repository policy requires every skill pull request to include a maintainer-reviewed global-name rationale and six-month durability rationale. Host-specific implementation details live in references so the core workflow remains understandable across model and product generations; automated validation catches objective violations but does not replace semantic review. The checks become merge-blocking only when the documented `main` ruleset and CODEOWNER review requirements are enabled on GitHub.
 
 See the [OpenAI skill guide](https://learn.chatgpt.com/docs/build-skills), [plugin packaging and marketplace guide](https://developers.openai.com/plugins/build/plugins), and [metadata evaluation guide](https://developers.openai.com/plugins/guides/optimize-metadata).
 
@@ -104,6 +106,7 @@ Reinstall the plugin if its installed copy needs refreshing:
 codex plugin add status-review-dashboard@givtaj-skills
 codex plugin add github-repository-guardrails@givtaj-skills
 codex plugin add central-projects-tracking@givtaj-skills
+codex plugin add loose-thread-finder@givtaj-skills
 codex plugin add coordinator-mode@givtaj-skills
 ```
 

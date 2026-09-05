@@ -19,12 +19,32 @@ NOREPLY_RE = re.compile(
 LEGACY_COMMIT_EXEMPTIONS = {
     "2812135ecf2899a8381d2711af33e0c233f77ad0",
     "c6f813cd204c37cafc0fd9f5221bfad81e970b81",
+    # GitHub generated this immutable merge commit for PR #5 with the
+    # maintainer's direct author email; PRIVACY.md records the disclosure.
+    "a995a735e4dd4c7266c720cefe900c5c74db4190",
 }
 # Exempt the immutable annotated-tag object, not a tag ref that can be moved.
 LEGACY_TAG_OBJECT_EXEMPTIONS = {
     "85d7b564961bcbbc7f47325f8df18fd5ab49b4fb",
 }
 OBJECT_ID_RE = re.compile(r"^[0-9a-f]{40}(?:[0-9a-f]{24})?$")
+LOCAL_ONLY_EXACT_REFS = {"refs/stash"}
+LOCAL_ONLY_REF_PREFIXES = (
+    "refs/bisect/",
+    "refs/codex/",
+    "refs/original/",
+    "refs/replace/",
+    "refs/rewritten/",
+    "refs/worktree/",
+)
+
+
+def is_local_only_ref(ref_name: str) -> bool:
+    """Identify native bookkeeping refs that are not publication roots."""
+
+    return ref_name in LOCAL_ONLY_EXACT_REFS or any(
+        ref_name.startswith(prefix) for prefix in LOCAL_ONLY_REF_PREFIXES
+    )
 
 
 def git(*args: str) -> str:
@@ -52,21 +72,24 @@ def require_complete_history() -> None:
 
 
 def ref_object_records() -> list[tuple[str, str]]:
-    """Return object IDs and types without using untrusted ref names as revisions."""
+    """Return publishable object IDs without using ref names as revisions."""
 
     records: list[tuple[str, str]] = []
     lines = git(
         "for-each-ref",
-        "--format=%(objectname)%00%(objecttype)",
+        "--format=%(refname)%00%(objectname)%00%(objecttype)",
         "refs",
     ).splitlines()
     for line in lines:
         if not line:
             continue
         fields = line.split("\x00")
-        if len(fields) != 2 or OBJECT_ID_RE.fullmatch(fields[0]) is None:
+        if len(fields) != 3 or OBJECT_ID_RE.fullmatch(fields[1]) is None:
             raise ValueError("malformed Git ref object metadata")
-        records.append((fields[0], fields[1]))
+        ref_name, object_id, object_type = fields
+        if is_local_only_ref(ref_name):
+            continue
+        records.append((object_id, object_type))
     return records
 
 
@@ -94,7 +117,7 @@ def peel_commit(object_id: str) -> str | None:
 
 
 def default_commit_revisions() -> list[str]:
-    """Return commit roots visible through every local ref and the checkout."""
+    """Return commit roots visible through publishable refs and the checkout."""
 
     revisions: set[str] = set()
     for object_id, _object_type in ref_object_records():
@@ -213,7 +236,8 @@ def parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
         metavar="REVISION",
         help=(
             "Git revision or range to validate with git rev-list; repeat to add roots. "
-            "When omitted, all locally available refs and HEAD are validated. "
+            "When omitted, publishable refs and HEAD are validated; native local-only "
+            "bookkeeping refs are excluded. "
             "For a pull-request contribution without its synthetic merge, pass a range "
             "such as HEAD^1..HEAD^2."
         ),

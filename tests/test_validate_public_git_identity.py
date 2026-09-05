@@ -255,6 +255,7 @@ class PublicGitIdentityTests(unittest.TestCase):
     def test_legacy_exemptions_are_immutable_object_ids(self) -> None:
         source = SCRIPT.read_text(encoding="utf-8")
 
+        self.assertIn("a995a735e4dd4c7266c720cefe900c5c74db4190", source)
         self.assertIn("85d7b564961bcbbc7f47325f8df18fd5ab49b4fb", source)
         self.assertNotIn("LEGACY_TAG_EXEMPTIONS", source)
 

@@ -10,6 +10,10 @@ All notable changes to published plugins are recorded here. Versions follow sema
 - Required global-name and six-month durability evidence for skill pull requests, with a trusted-base PR gate, CODEOWNER routing, and conservative CI checks for objective identity and model-release coupling.
 - Exact evaluation-result schema validation and mutation-focused tests for plugin versions, dates, checks, and behavioral-replay metadata.
 
+### Fixed
+
+- Restored public-history validation after GitHub generated the PR #5 merge commit with a direct author email by documenting and exempting only that immutable object id; future merges must preserve noreply author metadata.
+
 ## loose-thread-finder 0.1.0 - 2026-08-29
 
 ### Added

@@ -1,0 +1,40 @@
+{
+  "name": "coordinator-mode",
+  "version": "0.1.0",
+  "description": "Coordinate complex engineering work through bounded delegation, single-writer ownership, active supervision, and evidence-backed integration.",
+  "author": {
+    "name": "givtaj",
+    "url": "https://github.com/givtaj"
+  },
+  "homepage": "https://github.com/givtaj/codex-skills/tree/main/plugins/coordinator-mode",
+  "repository": "https://github.com/givtaj/codex-skills",
+  "license": "MIT",
+  "keywords": [
+    "coordination",
+    "delegation",
+    "engineering",
+    "multi-agent",
+    "verification"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Coordinator Mode",
+    "shortDescription": "Bounded multi-agent engineering coordination",
+    "longDescription": "Coordinate genuinely complex engineering work as a small set of bounded lanes with explicit authority, single-writer ownership, active drift control, truthful partial-result handling, and direct verification before integration.",
+    "developerName": "givtaj",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/givtaj/codex-skills/tree/main/plugins/coordinator-mode",
+    "privacyPolicyURL": "https://github.com/givtaj/codex-skills/blob/main/PRIVACY.md",
+    "defaultPrompt": [
+      "Coordinate this complex engineering task with bounded agents.",
+      "Delegate independent implementation lanes and verify the result.",
+      "Supervise a parallel read-only audit and synthesize the evidence."
+    ],
+    "brandColor": "#4F46E5",
+    "screenshots": []
+  }
+}

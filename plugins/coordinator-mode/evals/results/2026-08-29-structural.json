@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "skill": "coordinator-mode",
+  "plugin_version": "0.1.0",
+  "date": "2026-08-29",
+  "scope": "structural",
+  "status": "passed",
+  "checks": [
+    "repository marketplace validation",
+    "skill structure validation",
+    "plugin manifest and packaged-skill validation",
+    "golden request set schema and seven-kind coverage validation",
+    "coordination authority, single-writer, fallback, and partial-result contract review",
+    "public-content privacy and secret scan"
+  ],
+  "behavioral_replay": {
+    "status": "pending",
+    "reason": "The initial public preview has not yet been replayed across every supported host surface."
+  }
+}

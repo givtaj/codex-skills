@@ -12,6 +12,7 @@ This repository publishes focused, portable workflows as skills-only Codex plugi
 - Exclude credentials, private data, proprietary documents, generated caches, and machine-specific state.
 - Record any external service, binary, package, or host capability the workflow requires.
 - Before committing or tagging, verify that Git author, committer, and tagger metadata uses a GitHub-provided noreply identity; this repository rejects direct email addresses in new public Git metadata.
+- Before merging through GitHub, verify that the account uses a GitHub-provided noreply identity for web operations. Until that setting is confirmed, avoid GitHub-created merge, squash, and rebase commits; after required checks pass, fast-forward the exact noreply-authored pull-request head and validate `main` immediately.
 
 ### 2. Choose one canonical identity
 

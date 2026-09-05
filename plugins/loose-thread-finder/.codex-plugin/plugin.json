@@ -1,0 +1,40 @@
+{
+  "name": "loose-thread-finder",
+  "version": "0.1.0",
+  "description": "Recover forgotten project intent and unfinished work from task history and repository evidence, then surface focused, evidence-backed next actions.",
+  "author": {
+    "name": "givtaj",
+    "url": "https://github.com/givtaj"
+  },
+  "homepage": "https://github.com/givtaj/codex-skills/tree/main/plugins/loose-thread-finder",
+  "repository": "https://github.com/givtaj/codex-skills",
+  "license": "MIT",
+  "keywords": [
+    "continuity",
+    "forgotten-work",
+    "next-actions",
+    "project-history",
+    "task-review"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Loose Thread Finder",
+    "shortDescription": "Find what got lost. Pick up what matters.",
+    "longDescription": "Recover forgotten project intent, unfinished work, and stalled handoffs for one resolved project or tightly related project family from bounded task history and repository evidence. Reconnect related tasks, distinguish durable facts from signals, and return a focused attention list with one evidence-backed next action per material thread.",
+    "developerName": "givtaj",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/givtaj/codex-skills/tree/main/plugins/loose-thread-finder",
+    "privacyPolicyURL": "https://github.com/givtaj/codex-skills/blob/main/PRIVACY.md",
+    "defaultPrompt": [
+      "Find what I am forgetting across my recent project tasks and repository evidence.",
+      "Resume this old project by recovering its intent, loose threads, and next action.",
+      "Run a read-only weekly continuity review and report only material changes."
+    ],
+    "brandColor": "#D97706",
+    "screenshots": []
+  }
+}

@@ -19,3 +19,13 @@ Install it with:
 ```bash
 codex plugin add central-projects-tracking@givtaj-skills
 ```
+
+## Loose Thread Finder
+
+[`loose-thread-finder`](../plugins/loose-thread-finder/) recovers forgotten project intent, unfinished work, and stalled handoffs from bounded task history and repository evidence. It reconnects related task families, detects continuity gaps, and surfaces focused evidence-backed next actions. Reviews are read-only by default; scheduled runs stay quiet when nothing material changes.
+
+Install it with:
+
+```bash
+codex plugin add loose-thread-finder@givtaj-skills
+```

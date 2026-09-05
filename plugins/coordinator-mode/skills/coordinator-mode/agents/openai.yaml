@@ -1,0 +1,7 @@
+interface:
+  display_name: "Coordinator Mode"
+  short_description: "Coordinate bounded multi-agent engineering work"
+  default_prompt: "Use $coordinator-mode to coordinate this complex engineering task with bounded agents and verification."
+
+policy:
+  allow_implicit_invocation: true

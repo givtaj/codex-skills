@@ -19,6 +19,9 @@ NOREPLY_RE = re.compile(
 LEGACY_COMMIT_EXEMPTIONS = {
     "2812135ecf2899a8381d2711af33e0c233f77ad0",
     "c6f813cd204c37cafc0fd9f5221bfad81e970b81",
+    # GitHub generated this immutable merge commit for PR #5 with the
+    # maintainer's direct author email; PRIVACY.md records the disclosure.
+    "a995a735e4dd4c7266c720cefe900c5c74db4190",
 }
 # Exempt the immutable annotated-tag object, not a tag ref that can be moved.
 LEGACY_TAG_OBJECT_EXEMPTIONS = {

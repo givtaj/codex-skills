@@ -12,13 +12,17 @@ This repository publishes focused, portable workflows as skills-only Codex plugi
 - Exclude credentials, private data, proprietary documents, generated caches, and machine-specific state.
 - Record any external service, binary, package, or host capability the workflow requires.
 - Before committing or tagging, verify that Git author, committer, and tagger metadata uses a GitHub-provided noreply identity; this repository rejects direct email addresses in new public Git metadata.
+- Before merging through GitHub, verify that the account uses a GitHub-provided noreply identity for web operations. Until that setting is confirmed, avoid GitHub-created merge, squash, and rebase commits; after required checks pass, fast-forward the exact noreply-authored pull-request head and validate `main` immediately.
 
 ### 2. Choose one canonical identity
 
 Inspect the `SKILL.md` frontmatter before copying files.
 
 - Use a stable lower-case kebab-case name that describes the recognizable user goal, domain, or outcome.
+- Keep the canonical name within 64 characters so it remains portable across the repository's supported skill validators and install surfaces.
+- Choose standard, globally understandable terminology that a reader outside the contributor's team, organization, machine, and current task can use to predict when the skill applies.
 - Prefer durable names such as `status-review-dashboard` over a task title, date, model version, internal codename, or implementation detail.
+- Use a product, platform, standard, acronym, or domain-specific term only when it is intrinsic to the public workflow; explain it in the pull request when an unfamiliar reader may not understand it.
 - Keep an accurate existing name. Rename only when the source name is misleading, collides with another skill, or exposes private vocabulary.
 - Keep the skill folder and frontmatter `name` identical.
 - For a one-skill plugin, use the same canonical name for the plugin folder, manifest, marketplace entry, and evaluation file.
@@ -36,6 +40,26 @@ Use vocabulary that describes the work rather than today's implementation:
 - Preserve the user's domain terminology. Do not invent generic agent jargon where a standard domain term exists.
 
 The description is the activation contract. Front-load the outcome and trigger terms because hosts may shorten long descriptions. Include a clear `Do not use` boundary to protect precision.
+
+Before accepting any pull request that adds, removes, renames, or changes a `SKILL.md` or another file within a skill directory, complete both semantic reviews in the pull-request template:
+
+- **Global-name review:** a reader unfamiliar with the contributor or repository can infer the recognizable user goal, domain, or outcome. The name must not depend on private jargon, a current task, an internal codename, a model release, a temporary UI label, or an implementation detail. "Global" means broadly intelligible and collision-checked; it is not a claim of worldwide uniqueness.
+- **Six-month durability review:** reread the core instructions as if today's model roster, agent roles, tool names, and product UI had changed. A capable assistant six months later must still be able to identify the inputs, decisions, ordered work, outputs, safety boundaries, capability fallbacks, and ask/stop conditions. Move necessary volatile compatibility details to a routed reference.
+
+The contributor must record a concrete rationale for both reviews. A maintainer must evaluate those rationales before merge. CI blocks objective identity and portability violations, but passing automation does not prove that a name is globally clear or that the semantic contract is durable.
+
+If a legitimate, intrinsic domain term collides with a conservative automated rule, handle the exception in a separate policy pull request first. That change must add a positive regression fixture explaining the domain meaning and retain rejection coverage for the volatile model or product meaning; do not bypass the check inside the skill contribution.
+
+#### Required merge enforcement
+
+Repository policy must make the review consequential. Protect `main` with a GitHub ruleset that:
+
+- requires a pull request and blocks direct pushes;
+- requires the head-commit status `skill-contribution-contract` and the `Validate marketplace / validate` status check, both from GitHub Actions, and requires branches to be current with `main` before merge;
+- requires at least one approving CODEOWNER review, dismisses stale approvals when reviewable commits change, and requires approval of the most recent reviewable push; and
+- limits bypass authority to an explicit emergency group and records every bypass.
+
+`CODEOWNERS` routes every `SKILL.md` and every executable policy file to the repository maintainer. The trusted-base skill-contract workflow rechecks contributor evidence whenever the pull request opens, changes commits, reopens, or its description is edited. Because GitHub approval is not cryptographically bound to pull-request prose, the approving maintainer must reread any rationale changed after approval before accepting the pull request.
 
 ### 4. Use progressive disclosure
 

@@ -1,0 +1,12 @@
+# Semantic skill acceptance and executable repository policy require maintainer review.
+**/SKILL.md @givtaj
+**/skills/** @givtaj
+/.github/CODEOWNERS @givtaj
+/.github/pull_request_template.md @givtaj
+/.github/workflows/ @givtaj
+/CONTRIBUTING.md @givtaj
+/scripts/validate_repo.py @givtaj
+/scripts/validate_skill_pr.py @givtaj
+/tests/test_skill_contract.py @givtaj
+/tests/test_skill_pr_contract.py @givtaj
+/tests/test_validation_workflow.py @givtaj

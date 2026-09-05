@@ -16,6 +16,21 @@ body:
     attributes:
       label: Proposed canonical name
       placeholder: lower-case-kebab-case
+      description: Use globally understandable standard or intrinsic domain terminology, not private jargon, a current task, model release, temporary UI label, codename, or implementation detail.
+    validations:
+      required: true
+  - type: textarea
+    id: global_name_review
+    attributes:
+      label: Global-name rationale
+      description: Explain how someone outside your team or organization can infer the recognizable user goal, domain, or outcome. Explain essential brands, standards, or acronyms and note likely naming collisions.
+    validations:
+      required: true
+  - type: textarea
+    id: durability_review
+    attributes:
+      label: Six-month durability rationale
+      description: Explain why a capable assistant six months from now can follow the core workflow if today's models, roles, tools, and UI change. Identify volatile details that belong in routed references.
     validations:
       required: true
   - type: textarea

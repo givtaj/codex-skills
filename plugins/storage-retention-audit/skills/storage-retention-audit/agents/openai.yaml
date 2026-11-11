@@ -1,0 +1,7 @@
+interface:
+  display_name: "Storage Retention Audit"
+  short_description: "Inspect disk use and propose safe reclamation"
+  default_prompt: "Use $storage-retention-audit to inspect this project’s disk use and suggest exact cleanup candidates for my confirmation."
+
+policy:
+  allow_implicit_invocation: true

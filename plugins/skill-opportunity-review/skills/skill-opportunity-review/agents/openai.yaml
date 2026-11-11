@@ -1,0 +1,6 @@
+interface:
+  display_name: "Skill Opportunity Review"
+  short_description: "Find reusable skills in recent work; suggest first"
+  default_prompt: "Use $skill-opportunity-review to review my last 7 days of work, check existing skills first, and suggest useful skills. Wait for my confirmation before creating any."
+policy:
+  allow_implicit_invocation: true

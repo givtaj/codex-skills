@@ -29,3 +29,11 @@ Install it with:
 ```bash
 codex plugin add loose-thread-finder@givtaj-skills
 ```
+
+## Skill Opportunity Review
+
+[`skill-opportunity-review`](../plugins/skill-opportunity-review/) finds useful reusable workflows in recent work, checks existing skills, and creates only confirmed proposals. Version `0.1.0` is a preview with full host replay pending.
+
+## Tempo Project Coordination
+
+[`tempo`](../plugins/tempo/) reviews project work across chats, refreshes comparisons, resumes selected work, and follows through on authorized handoffs. Version `0.1.0` is a preview with full host replay pending.

@@ -1,0 +1,40 @@
+{
+  "name": "skill-sync",
+  "version": "0.1.0",
+  "description": "Compare local skill bundles with a selected GitHub repository and apply only the exact transfer plan the user confirms.",
+  "author": {
+    "name": "givtaj",
+    "url": "https://github.com/givtaj"
+  },
+  "homepage": "https://github.com/givtaj/codex-skills/tree/main/plugins/skill-sync",
+  "repository": "https://github.com/givtaj/codex-skills",
+  "license": "MIT",
+  "keywords": [
+    "skills",
+    "github",
+    "inventory",
+    "sync",
+    "confirmation"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Skill Sync",
+    "shortDescription": "Compare local and GitHub skills before confirmed sync",
+    "longDescription": "Inventory complete local and GitHub skill bundles, distinguish missing, changed and unknown copies, prepare portable reviewable payloads, and upload or install only the exact plan the user confirms.",
+    "developerName": "givtaj",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/givtaj/codex-skills/tree/main/plugins/skill-sync",
+    "privacyPolicyURL": "https://github.com/givtaj/codex-skills/blob/main/PRIVACY.md",
+    "defaultPrompt": [
+      "Compare my local skills with the GitHub repository I specify.",
+      "Show which skills differ on each side without transferring anything.",
+      "Prepare a selected skill batch for review before upload."
+    ],
+    "brandColor": "#2563EB",
+    "screenshots": []
+  }
+}

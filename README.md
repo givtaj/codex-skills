@@ -23,6 +23,10 @@ codex plugin add central-projects-tracking@givtaj-skills
 codex plugin add loose-thread-finder@givtaj-skills
 codex plugin add coordinator-mode@givtaj-skills
 codex plugin add terminal-wireframe-sketching@givtaj-skills
+codex plugin add skill-opportunity-review@givtaj-skills
+codex plugin add skill-sync@givtaj-skills
+codex plugin add storage-retention-audit@givtaj-skills
+codex plugin add tempo@givtaj-skills
 ```
 
 Start a new task after installation so the new skill is loaded. Invoke a skill explicitly by name, or let the host select it when the request matches its description.
@@ -37,6 +41,12 @@ Start a new task after installation so the new skill is loaded. Invoke a skill e
 | [`loose-thread-finder`](./plugins/loose-thread-finder/) | Productivity · Project operations | Public preview `0.1.0` | Recovers forgotten project intent and unfinished work from task history and repository evidence, reconnects related tasks, and surfaces focused next actions. |
 | [`coordinator-mode`](./plugins/coordinator-mode/) | Developer tools · Project operations | Public preview `0.1.0` | Coordinates complex engineering work through bounded delegation, single-writer ownership, drift control, and evidence-backed integration. |
 | [`terminal-wireframe-sketching`](./plugins/terminal-wireframe-sketching/) | Creativity | Public preview `0.1.0` | Turns rough sketches, design context, workflows, and software architecture into compact terminal-style wireframes for confirmation. |
+| [`skill-opportunity-review`](./plugins/skill-opportunity-review/) | Productivity | Preview `0.1.0` | Finds useful reusable workflows in recent work, checks existing skills, and creates only confirmed proposals. |
+| [`skill-sync`](./plugins/skill-sync/) | Developer tools | Preview `0.1.0` | Compares local skills with a selected GitHub repository and waits for exact confirmation before upload or installation. |
+| [`storage-retention-audit`](./plugins/storage-retention-audit/) | Developer tools · Project operations | Preview `0.1.0` | Audits storage and project worktrees, traces consumers, and proposes exact cleanup batches with recovery evidence. |
+| [`tempo`](./plugins/tempo/) | Productivity · Project operations | Preview `0.1.0` | Reviews project work across chats, refreshes comparisons, resumes selected work, and follows through on authorized handoffs. |
+
+The `tempo` plugin bundles `tempo`, `tempo-refresh-and-compare`, `tempo-resume`, and `tempo-follow-through`. The `storage-retention-audit` plugin bundles its namesake and `project-worktree-audit` so companion links resolve within each package.
 
 The marketplace category is the install-surface category. The catalog may cross-list a plugin under other relevant domains without duplicating its files.
 
@@ -90,7 +100,7 @@ The public repository also uses GitHub secret scanning and push protection. Loca
 
 ## Quality model
 
-The repository follows current OpenAI guidance: one recognizable user goal per skill, concise trigger descriptions with explicit boundaries, progressive disclosure for supporting resources, stable plugin identities, and labelled activation tests. Repository policy requires every skill pull request to include a maintainer-reviewed global-name rationale and six-month durability rationale. Host-specific implementation details live in references so the core workflow remains understandable across model and product generations; automated validation catches objective violations but does not replace semantic review. The checks become merge-blocking only when the documented `main` ruleset and CODEOWNER review requirements are enabled on GitHub.
+The repository follows current OpenAI guidance: one recognizable user goal per skill, concise trigger descriptions with explicit boundaries, progressive disclosure for supporting resources, stable plugin identities, and labelled activation tests. Repository policy requires every skill pull request to include a maintainer-reviewed global-name rationale and six-month durability rationale. Host-specific implementation details live in references so the core workflow remains understandable across model and product generations; automated validation catches objective violations but does not replace semantic review. The selected governance model is solo-maintainer PR and CI enforcement: the maintainer records semantic acceptance for the exact head, explicitly as self-acceptance when also the contributor. Independent approval is not required. These checks become merge-blocking only when the documented `main` ruleset is active; consult the live ruleset rather than assuming this documentation proves enforcement.
 
 See the [OpenAI skill guide](https://learn.chatgpt.com/docs/build-skills), [plugin packaging and marketplace guide](https://developers.openai.com/plugins/build/plugins), and [metadata evaluation guide](https://developers.openai.com/plugins/guides/optimize-metadata).
 
@@ -111,6 +121,10 @@ codex plugin add central-projects-tracking@givtaj-skills
 codex plugin add loose-thread-finder@givtaj-skills
 codex plugin add coordinator-mode@givtaj-skills
 codex plugin add terminal-wireframe-sketching@givtaj-skills
+codex plugin add skill-opportunity-review@givtaj-skills
+codex plugin add skill-sync@givtaj-skills
+codex plugin add storage-retention-audit@givtaj-skills
+codex plugin add tempo@givtaj-skills
 ```
 
 ## License

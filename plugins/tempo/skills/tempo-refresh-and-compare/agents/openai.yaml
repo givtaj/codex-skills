@@ -1,0 +1,6 @@
+interface:
+  display_name: "Tempo Refresh and Compare"
+  short_description: "Compare current work with the latest Tempo review"
+  default_prompt: "$tempo-refresh-and-compare"
+policy:
+  allow_implicit_invocation: true

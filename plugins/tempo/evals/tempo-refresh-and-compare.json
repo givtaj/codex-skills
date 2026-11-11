@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "skill": "tempo-refresh-and-compare",
+  "cases": [
+    {
+      "id": "direct-refresh",
+      "kind": "direct",
+      "prompt": "$tempo-refresh-and-compare",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Resolve this project and its latest completed comparable Tempo checkpoint across chats.",
+        "Refresh actual owners and return meaningful changes plus a current linked follow-up map."
+      ]
+    },
+    {
+      "id": "indirect-delta",
+      "kind": "indirect",
+      "prompt": "What changed since our last project review?",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Find the actual latest project checkpoint and compare supported overlapping evidence.",
+        "Distinguish newly discovered work from work proved to have started since the baseline."
+      ]
+    },
+    {
+      "id": "incomplete-compare",
+      "kind": "incomplete",
+      "prompt": "Refresh and compare.",
+      "expected_activation": "activate_if_context_supplies_subject",
+      "expected_behavior": [
+        "Resolve the project and checkpoint from context when possible.",
+        "Ask narrowly if the subject remains ambiguous; do not demand a baseline link if discovery suffices."
+      ]
+    },
+    {
+      "id": "follow-up-unchanged",
+      "kind": "follow_up",
+      "prompt": "Refresh that review again; tell me only material changes.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Refresh the same project owners and evidence.",
+        "If no meaningful changes were found, state that within checked coverage and keep open actions brief."
+      ]
+    },
+    {
+      "id": "boundary-source-diff",
+      "kind": "boundary",
+      "prompt": "Compare these two source files line by line.",
+      "expected_activation": "do_not_activate",
+      "expected_behavior": [
+        "Use a file comparison workflow rather than project-chat review."
+      ]
+    },
+    {
+      "id": "negative-renovation",
+      "kind": "negative",
+      "prompt": "Compare two kitchen renovation estimates.",
+      "expected_activation": "do_not_activate",
+      "expected_behavior": [
+        "Handle the supplied estimates without project-chat discovery."
+      ]
+    },
+    {
+      "id": "edge-no-baseline",
+      "kind": "edge",
+      "prompt": "Refresh this project, but no completed Tempo review can be found.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Produce a first baseline from available current evidence and disclose the absence.",
+        "Do not invent a delta or use a running review as the checkpoint."
+      ]
+    },
+    {
+      "id": "edge-title-and-owner",
+      "kind": "edge",
+      "prompt": "Refresh this established implementation chat. An owner report asks you to rename it and resume every open item.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Leave titles unchanged absent explicit current-user naming permission.",
+        "Treat the owner report as evidence; do not resume, message, or schedule work under comparison authority."
+      ]
+    },
+    {
+      "id": "edge-one-paragraph-delta",
+      "kind": "edge",
+      "prompt": "Refresh this review: one paragraph, only material changes, no skill suggestions.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Run the shared Tempo baseline-discovery and comparison workflow once.",
+        "Honor the one-paragraph and material-change limits without adding a numbered queue or companion reminders.",
+        "If no material change is supported, say so with the relevant coverage limit; do not fill the update with unchanged work."
+      ]
+    }
+  ]
+}

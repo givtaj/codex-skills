@@ -1,0 +1,40 @@
+{
+  "name": "tempo",
+  "version": "0.1.0",
+  "description": "Review project conversations, compare progress, and coordinate explicitly authorized follow-ups with existing owners.",
+  "author": {
+    "name": "givtaj",
+    "url": "https://github.com/givtaj"
+  },
+  "homepage": "https://github.com/givtaj/codex-skills/tree/main/plugins/tempo",
+  "repository": "https://github.com/givtaj/codex-skills",
+  "license": "MIT",
+  "keywords": [
+    "project-review",
+    "coordination",
+    "chat-history",
+    "handoff",
+    "progress"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Tempo Project Coordination",
+    "shortDescription": "Review project work and coordinate selected follow-ups",
+    "longDescription": "Use project chats and consequential evidence to build a linked follow-up map. Compare with the latest completed review, resume selected owners when authorized, and arrange milestone notifications or review returned results without expanding action authority.",
+    "developerName": "givtaj",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/givtaj/codex-skills/tree/main/plugins/tempo",
+    "privacyPolicyURL": "https://github.com/givtaj/codex-skills/blob/main/PRIVACY.md",
+    "defaultPrompt": [
+      "Use Tempo to review this project and show the next useful follow-ups.",
+      "Refresh this project against its latest completed Tempo review.",
+      "Resume the selected Tempo items in their existing owning chats."
+    ],
+    "brandColor": "#2563EB",
+    "screenshots": []
+  }
+}

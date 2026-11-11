@@ -19,3 +19,11 @@
 ## Coordinator Mode
 
 [`coordinator-mode`](../plugins/coordinator-mode/) divides genuinely complex work into bounded lanes, supervises authority and write ownership, and integrates only verified results. It is cross-listed here while retaining `Developer Tools` as its marketplace category.
+
+## Tempo Project Coordination
+
+[`tempo`](../plugins/tempo/) reviews project work across chats, refreshes comparisons, resumes selected work, and follows through on authorized handoffs. Version `0.1.0` is a preview with full host replay pending.
+
+## Storage Retention Audit
+
+[`storage-retention-audit`](../plugins/storage-retention-audit/) audits storage and project worktrees, traces consumers, and proposes exact cleanup batches with recovery evidence. Version `0.1.0` is a preview with full host replay pending.

@@ -1437,10 +1437,21 @@ def validate_eval_results(
     plugin_version: str,
     golden_case_ids: set[str],
 ) -> None:
-    result_files = sorted((plugin_dir / "evals" / "results").glob("*.json"))
+    packaged_skills = {
+        path.parent.name for path in (plugin_dir / "skills").glob("*/SKILL.md")
+    }
+    result_files = []
+    for result_path in sorted((plugin_dir / "evals" / "results").glob("*.json")):
+        result_skill = load_json(result_path).get("skill")
+        require(
+            isinstance(result_skill, str) and result_skill in packaged_skills,
+            f"{relative(result_path)}: result names an unknown packaged skill",
+        )
+        if result_skill == skill_name:
+            result_files.append(result_path)
     require(
         result_files,
-        f"{relative(plugin_dir / 'evals')}: missing dated validation result",
+        f"{relative(plugin_dir / 'evals')}: missing dated validation result for {skill_name}",
     )
     current_version_results = 0
     for result_path in result_files:

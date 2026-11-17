@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "skill": "skill-sync",
+  "plugin_version": "0.1.0",
+  "date": "2026-11-11",
+  "scope": "structural",
+  "status": "passed",
+  "checks": [
+    "Skill creator quick validation passed for the revised public skill.",
+    "27 deterministic manifest tests passed, including bytecode-named directories and symlinks, ordinary bytecode exclusions, race rejection and stable v1 fixture hashes.",
+    "Targeted plugin interface, skill metadata, core language, golden schemas, result schemas, relative Markdown links and public-content validation passed."
+  ],
+  "behavioral_replay": {
+    "status": "pending",
+    "reason": "Complete installed-host replay of this revised public preview remains pending; helper regression tests do not prove workflow activation or approved transfers."
+  }
+}

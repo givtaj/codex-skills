@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "skill": "storage-retention-audit",
+  "plugin_version": "0.1.0",
+  "date": "2026-11-11",
+  "scope": "structural",
+  "status": "passed",
+  "checks": [
+    "Skill-creator quick validator passed for the revised public skill.",
+    "Targeted plugin interface, skill metadata, canonical name, core-language and relative reference checks passed.",
+    "Updated golden request and per-skill result schema checks passed.",
+    "Targeted public-content scan passed."
+  ],
+  "behavioral_replay": {
+    "status": "pending",
+    "reason": "These are structural checks of the revised public preview. Independent forward testing and complete installed-host replay are not claimed by this record."
+  }
+}

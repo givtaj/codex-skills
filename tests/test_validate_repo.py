@@ -23,6 +23,9 @@ class EvaluationResultValidationTests(unittest.TestCase):
         self.plugin_dir = self.root / "plugins" / "example-skill"
         self.results_dir = self.plugin_dir / "evals" / "results"
         self.results_dir.mkdir(parents=True)
+        skill_dir = self.plugin_dir / "skills" / self.skill_name
+        skill_dir.mkdir(parents=True)
+        (skill_dir / "SKILL.md").write_text("fixture\n", encoding="utf-8")
         self.root_patch = mock.patch.object(validate_repo, "ROOT", self.root)
         self.root_patch.start()
         self.git("init", "--initial-branch=main")
@@ -381,6 +384,63 @@ class EvaluationResultValidationTests(unittest.TestCase):
                 self.skill_name,
                 self.plugin_version,
                 self.golden_case_ids,
+            )
+
+    def add_companion(self) -> str:
+        companion = "companion-skill"
+        folder = self.plugin_dir / "skills" / companion
+        folder.mkdir(parents=True)
+        (folder / "SKILL.md").write_text("fixture\n", encoding="utf-8")
+        return companion
+
+    def test_multi_skill_results_use_their_own_cases(self) -> None:
+        companion = self.add_companion()
+        self.write_result(self.valid_behavioral_result(), "2026-08-27-behavioral-primary.json")
+        result = self.valid_behavioral_result()
+        result["skill"] = companion
+        result["behavioral_replay"]["case_ids"] = ["companion-direct"]
+        self.write_result(result, "2026-08-27-behavioral-companion.json")
+        self.validate_result_set()
+        validate_repo.validate_eval_results(
+            self.plugin_dir, companion, self.plugin_version, {"companion-direct"}
+        )
+
+    def test_companion_result_cannot_supply_missing_skill_evidence(self) -> None:
+        result = self.valid_result()
+        result["skill"] = self.add_companion()
+        self.write_result(result)
+        with self.assertRaisesRegex(validate_repo.ValidationError, "missing dated validation result"):
+            self.validate_result_set()
+
+    def test_companion_current_version_cannot_replace_own_current_evidence(self) -> None:
+        result = self.valid_result()
+        result["plugin_version"] = "1.2.2"
+        self.write_result(result)
+        result = self.valid_result()
+        result["skill"] = self.add_companion()
+        self.write_result(result, "2026-08-27-structural-companion.json")
+        with self.assertRaisesRegex(validate_repo.ValidationError, "no validation result for plugin version"):
+            self.validate_result_set()
+
+    def test_rejects_result_for_unknown_packaged_skill(self) -> None:
+        self.write_result(self.valid_result())
+        result = self.valid_result()
+        result["skill"] = "unknown-skill"
+        self.write_result(result, "2026-08-27-structural-unknown.json")
+        with self.assertRaisesRegex(validate_repo.ValidationError, "unknown packaged skill"):
+            self.validate_result_set()
+
+    def test_companion_result_schema_still_validated(self) -> None:
+        companion = self.add_companion()
+        self.write_result(self.valid_result())
+        result = self.valid_result()
+        result["skill"] = companion
+        result["unexpected"] = True
+        self.write_result(result, "2026-08-27-structural-companion.json")
+        self.validate_result_set()
+        with self.assertRaisesRegex(validate_repo.ValidationError, "evaluation result keys differ"):
+            validate_repo.validate_eval_results(
+                self.plugin_dir, companion, self.plugin_version, self.golden_case_ids
             )
 
     def test_rejects_malformed_plugin_version(self) -> None:

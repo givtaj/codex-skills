@@ -1,0 +1,40 @@
+{
+  "name": "storage-retention-audit",
+  "version": "0.1.0",
+  "description": "Audit development storage and project worktrees, attribute growth, protect unfinished work, and propose exact retention-aware cleanup.",
+  "author": {
+    "name": "givtaj",
+    "url": "https://github.com/givtaj"
+  },
+  "homepage": "https://github.com/givtaj/codex-skills/tree/main/plugins/storage-retention-audit",
+  "repository": "https://github.com/givtaj/codex-skills",
+  "license": "MIT",
+  "keywords": [
+    "storage",
+    "retention",
+    "worktrees",
+    "audit",
+    "recovery"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Storage and Worktree Audit",
+    "shortDescription": "Audit storage and assess project checkout retirement",
+    "longDescription": "Review disk use and recurring growth, reconcile project worktrees and related copies, trace owners and consumers, protect unfinished work and recovery evidence, and propose exact cleanup batches for user confirmation.",
+    "developerName": "givtaj",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/givtaj/codex-skills/tree/main/plugins/storage-retention-audit",
+    "privacyPolicyURL": "https://github.com/givtaj/codex-skills/blob/main/PRIVACY.md",
+    "defaultPrompt": [
+      "Audit this project\u2019s disk use and propose exact cleanup candidates.",
+      "Find spare project worktrees and assess retirement readiness.",
+      "Explain why storage grew again after the last cleanup."
+    ],
+    "brandColor": "#0F766E",
+    "screenshots": []
+  }
+}

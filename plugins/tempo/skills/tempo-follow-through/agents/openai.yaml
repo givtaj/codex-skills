@@ -1,0 +1,6 @@
+interface:
+  display_name: "Tempo Follow-through"
+  short_description: "Coordinate milestone reports, blockers and review"
+  default_prompt: "$tempo-follow-through"
+policy:
+  allow_implicit_invocation: true

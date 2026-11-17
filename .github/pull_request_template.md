@@ -22,7 +22,9 @@ Describe the focused workflow and why it belongs in this marketplace.
 
 ## Maintainer semantic acceptance
 
-<!-- Contributor: leave these unchecked. An approving CODEOWNER review is the acceptance signal; these boxes are a visible review record, not CI evidence. -->
+<!-- The maintainer completes these after reviewing the exact head and current rationales. When the maintainer is also the contributor, label the record self-acceptance; it is not an independent GitHub approval. Add a PR comment naming the head SHA and rationale revision or quoting the reviewed rationales. Renew after head changes or material rationale edits. These boxes are a visible record, not CI evidence or a mechanically enforced approval. -->
+
+Acceptance record: <!-- maintainer, exact head SHA, rationale revision, and PR comment link; state self-acceptance when applicable -->
 - [ ] The maintainer agrees that the canonical name is globally clear for the intended public audience.
 - [ ] The maintainer agrees that the core semantic contract passes the six-month durability review; automation alone is not treated as proof.
 

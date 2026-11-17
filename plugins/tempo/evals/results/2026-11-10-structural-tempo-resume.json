@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "skill": "tempo-resume",
+  "plugin_version": "0.1.0",
+  "date": "2026-11-10",
+  "scope": "structural",
+  "status": "passed",
+  "checks": [
+    "Skill-creator quick validation",
+    "Canonical identity, activation boundary and durable core language validation",
+    "OpenAI skill metadata and plugin interface validation",
+    "Golden request schema and seven-kind coverage validation",
+    "Packaged relative Markdown link resolution",
+    "Public text privacy and secret-pattern scan",
+    "Repository regression suite passed: 108 tests, including 24 manifest helper tests and multi-skill evidence routing.",
+    "Repository marketplace, plugin packaging, all golden schemas, public content and public Git identity validation passed.",
+    "Public variant reviewed independently; no installation or complete host-level replay was performed."
+  ],
+  "behavioral_replay": {
+    "status": "pending",
+    "reason": "This public variant has not completed the golden request set in a supported host; personal-installation evidence is not reused."
+  }
+}

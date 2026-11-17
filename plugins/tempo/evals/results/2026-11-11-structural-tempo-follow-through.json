@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "skill": "tempo-follow-through",
+  "plugin_version": "0.1.0",
+  "date": "2026-11-11",
+  "scope": "structural",
+  "status": "passed",
+  "checks": [
+    "Skill-creator quick validation passed for the corrected public skill.",
+    "Canonical identity, activation boundary, core-language and skill metadata validation passed.",
+    "Plugin interface and golden request schemas, including seven-kind coverage, passed.",
+    "Packaged relative Markdown links and public-worktree content scan passed."
+  ],
+  "behavioral_replay": {
+    "status": "pending",
+    "reason": "The readiness corrections have not completed installed-host replay. These are targeted structural checks, not behavioral acceptance."
+  }
+}

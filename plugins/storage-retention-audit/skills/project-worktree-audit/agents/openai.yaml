@@ -1,0 +1,7 @@
+interface:
+  display_name: "Project Worktree Audit"
+  short_description: "Find project checkouts and assess safe retirement"
+  default_prompt: "Use $project-worktree-audit to find this project’s worktrees and related temporary copies, identify unfinished work and dependencies, and rank exact retirement proposals by useful reclaim. Inspect only; do not remove anything."
+
+policy:
+  allow_implicit_invocation: true

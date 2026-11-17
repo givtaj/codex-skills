@@ -12,7 +12,7 @@ This repository publishes focused, portable workflows as skills-only Codex plugi
 - Exclude credentials, private data, proprietary documents, generated caches, and machine-specific state.
 - Record any external service, binary, package, or host capability the workflow requires.
 - Before committing or tagging, verify that Git author, committer, and tagger metadata uses a GitHub-provided noreply identity; this repository rejects direct email addresses in new public Git metadata.
-- Before merging through GitHub, verify that the account uses a GitHub-provided noreply identity for web operations. Until that setting is confirmed, avoid GitHub-created merge, squash, and rebase commits; after required checks pass, fast-forward the exact noreply-authored pull-request head and validate `main` immediately.
+- Before merging through GitHub, verify that the merging account uses a GitHub-provided noreply identity for web operations. Hold the pull request unmerged until this is confirmed. Merge only through the required pull-request path after checks and semantic acceptance pass; do not use a direct or fast-forward push to bypass that path. Validate public Git identity on the resulting `main` immediately.
 
 ### 2. Choose one canonical identity
 
@@ -52,14 +52,18 @@ If a legitimate, intrinsic domain term collides with a conservative automated ru
 
 #### Required merge enforcement
 
-Repository policy must make the review consequential. Protect `main` with a GitHub ruleset that:
+Repository policy requires a GitHub ruleset targeting `refs/heads/main` that:
 
-- requires a pull request and blocks direct pushes;
-- requires the head-commit status `skill-contribution-contract` and the `Validate marketplace / validate` status check, both from GitHub Actions, and requires branches to be current with `main` before merge;
-- requires at least one approving CODEOWNER review, dismisses stale approvals when reviewable commits change, and requires approval of the most recent reviewable push; and
-- limits bypass authority to an explicit emergency group and records every bypass.
+- requires a pull request, with all review conversations resolved, and blocks direct pushes;
+- requires the head-commit status `skill-contribution-contract` and the check context `validate`, both restricted to the GitHub Actions integration, with branches current with `main` before merge;
+- prevents branch deletion and non-fast-forward updates; and
+- has no bypass actors. Any exceptional ruleset change requires explicit owner authorization and a recorded reason; routine merging must satisfy the rules.
 
-`CODEOWNERS` routes every `SKILL.md` and every executable policy file to the repository maintainer. The trusted-base skill-contract workflow rechecks contributor evidence whenever the pull request opens, changes commits, reopens, or its description is edited. Because GitHub approval is not cryptographically bound to pull-request prose, the approving maintainer must reread any rationale changed after approval before accepting the pull request.
+This repository uses a solo-maintainer review model. The ruleset requires zero approving reviews and does not require CODEOWNER approval or approval of the latest push. `CODEOWNERS` remains a routing and ownership record. These settings enforce pull requests and CI; they do not establish independent human review.
+
+Before merging, the maintainer must evaluate the global-name and six-month durability rationales and record semantic acceptance in a pull-request comment naming the exact head commit and the reviewed rationale text or its revision. When the maintainer is also the contributor, identify this as self-acceptance. Re-evaluate and renew that record after any head change or material rationale edit. A passing automated status is not the acceptance record.
+
+The trusted-base skill-contract workflow rechecks contributor evidence whenever the pull request opens, changes commits, reopens, or its description is edited. CI checks evidence structure; the maintainer remains responsible for its substance. GitHub does not mechanically bind this manual semantic-acceptance comment to a commit or prose revision.
 
 ### 4. Use progressive disclosure
 

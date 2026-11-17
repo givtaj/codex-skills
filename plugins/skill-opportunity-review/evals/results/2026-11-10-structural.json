@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "skill": "skill-opportunity-review",
+  "plugin_version": "0.1.0",
+  "date": "2026-11-10",
+  "scope": "structural",
+  "status": "passed",
+  "checks": [
+    "public adaptation and golden request set prepared",
+    "Repository regression suite passed: 108 tests, including 24 manifest helper tests and multi-skill evidence routing.",
+    "Repository marketplace, plugin packaging, all golden schemas, public content and public Git identity validation passed.",
+    "Public variant reviewed independently; no installation or complete host-level replay was performed.",
+    "Skill creator quick validation, relative links, and proposal authority scenario review passed."
+  ],
+  "behavioral_replay": {
+    "status": "pending",
+    "reason": "Full host-level replay and installation verification have not been performed for this public preview."
+  }
+}

@@ -16,7 +16,60 @@ All notable changes to published plugins are recorded here. Versions follow sema
 
 ### Fixed
 
+- Routed multi-skill plugin evaluation results by declared packaged skill, retaining per-skill version and schema checks and rejecting unknown skill names.
 - Restored public-history validation after GitHub generated the PR #5 merge commit with a direct author email by documenting and exempting only that immutable object id; future merges must preserve noreply author metadata.
+
+## skill-opportunity-review 0.1.0 - Unreleased
+
+### Added
+
+- Prepared preview: Finds useful reusable workflows in recent work, checks existing skills, and creates only confirmed proposals.
+- Native packaging, golden activation cases, and privacy disclosures.
+- Current documented skill discovery, verified legacy-root support, and approved improvements that proceed without redundant confirmation when scope and destination state are unchanged.
+
+### Validation status
+
+- Local preparation only; full host-level replay and installation verification remain pending. No publication is claimed.
+
+## skill-sync 0.1.0 - Unreleased
+
+### Added
+
+- Prepared preview: Compares local skills with a selected GitHub repository and waits for exact confirmation before upload or installation.
+- Native packaging, golden activation cases, and privacy disclosures.
+- Configurable local skill roots and GitHub destination, with no fixed machine, repository, or removed-host history.
+- Descriptor-anchored no-follow manifest scans reject concurrent path substitutions before reading replacement payloads; unsupported hosts return incomplete. Stable strict and Git-compatible hash formats are retained.
+- Manifest regression coverage retains directories and symlinks named with bytecode suffixes while excluding ordinary bytecode files; documented host discovery includes ancestor skill roots.
+
+### Validation status
+
+- Local preparation only; full host-level replay and installation verification remain pending. No publication is claimed.
+
+## storage-retention-audit 0.1.0 - Unreleased
+
+### Added
+
+- Prepared preview: Audits storage and project worktrees, traces consumers, and proposes exact cleanup batches with recovery evidence.
+- Native packaging, golden activation cases, and privacy disclosures.
+- Bundled `project-worktree-audit` to preserve the shared retirement workflow.
+- Read-only audit defaults honor explicit user-authorized prerequisites while keeping deletion and cleanup authority separate.
+
+### Validation status
+
+- Local preparation only; full host-level replay and installation verification remain pending. No publication is claimed.
+
+## tempo 0.1.0 - Unreleased
+
+### Added
+
+- Prepared preview: Reviews project work across chats, refreshes comparisons, resumes selected work, and follows through on authorized handoffs.
+- Native packaging, golden activation cases, and privacy disclosures.
+- Bundled four companion skills; generalized personal review naming into an explicit user preference.
+- Explicit output preferences override default maps and reminders. Direct companion entry points share sensitive-title handling, and Refresh uses Tempo's shared baseline procedure.
+
+### Validation status
+
+- Local preparation only; full host-level replay and installation verification remain pending. No publication is claimed.
 
 ## terminal-wireframe-sketching 0.1.0 - 2026-09-02
 

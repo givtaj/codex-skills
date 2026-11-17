@@ -1,0 +1,39 @@
+{
+  "name": "skill-opportunity-review",
+  "version": "0.1.0",
+  "description": "Find reusable workflows in recent work, check existing skills, and propose up to three improvements or new skills before creating approved candidates.",
+  "author": {
+    "name": "givtaj",
+    "url": "https://github.com/givtaj"
+  },
+  "homepage": "https://github.com/givtaj/codex-skills/tree/main/plugins/skill-opportunity-review",
+  "repository": "https://github.com/givtaj/codex-skills",
+  "license": "MIT",
+  "keywords": [
+    "skills",
+    "workflow",
+    "review",
+    "reuse"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Skill Opportunity Review",
+    "shortDescription": "Find reusable skills in recent work; suggest first",
+    "longDescription": "Review recent work, compare existing skill coverage, and recommend reuse, improvements, or focused new skills. Create only explicitly selected candidates in their approved destinations.",
+    "developerName": "givtaj",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/givtaj/codex-skills/tree/main/plugins/skill-opportunity-review",
+    "privacyPolicyURL": "https://github.com/givtaj/codex-skills/blob/main/PRIVACY.md",
+    "defaultPrompt": [
+      "Review my last week of work for useful reusable skills.",
+      "Check whether these repeated workflows need new skills or existing ones.",
+      "Create the skill proposals I selected."
+    ],
+    "brandColor": "#0284C7",
+    "screenshots": []
+  }
+}

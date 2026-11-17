@@ -1,0 +1,6 @@
+interface:
+  display_name: "Tempo"
+  short_description: "Map project work into numbered, linked follow-ups"
+  default_prompt: "$tempo"
+policy:
+  allow_implicit_invocation: true

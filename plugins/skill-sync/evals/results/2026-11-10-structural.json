@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "skill": "skill-sync",
+  "plugin_version": "0.1.0",
+  "date": "2026-11-10",
+  "scope": "structural",
+  "status": "passed",
+  "checks": [
+    "Skill creator quick validation passed.",
+    "Targeted plugin interface, packaged skill metadata, core-language, references, golden request schema and public-content validation passed.",
+    "24 deterministic manifest tests passed, including concurrent replacement rejection, no outside payload reads/hashes, safe API capability failure and stable v1 hashes, using temporary folders and a temporary Git index.",
+    "Repository regression suite passed: 108 tests, including 24 manifest helper tests and multi-skill evidence routing.",
+    "Repository marketplace, plugin packaging, all golden schemas, public content and public Git identity validation passed.",
+    "Public variant reviewed independently; no installation or complete host-level replay was performed."
+  ],
+  "behavioral_replay": {
+    "status": "pending",
+    "reason": "The public variant has not completed installed-host replay of the golden request set."
+  }
+}

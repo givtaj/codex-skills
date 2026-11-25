@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "skill": "response-pipe",
+  "cases": [
+    {
+      "id": "direct-bare-recap",
+      "kind": "direct",
+      "prompt": "Prior context: The import plan at https://example.org/import#r2 still lists R1 (parser) as open. A subsequent signed-off test report at https://example.org/reports/parser closes R1. R2 (field mapping) is waiting for the reviewer to approve the mapping table. Current message: $response-pipe",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Return just the checkpoint and next action, in that order. Continue in this chat and keep R2 addressable in the next message.",
+        "Identify R1 as complete based on the newer report and link to it. Retain R2 and direct the reviewer to the linked plan item for approval.",
+        "Leave the plan, assignments and approval state as supplied."
+      ]
+    },
+    {
+      "id": "direct-appended-complete",
+      "kind": "direct",
+      "prompt": "Compare this list of required archive formats (CSV, PDF) with today's acceptance record (PDF passed, CSV passed). Tell me whether each requirement was met. This is the entire checklist. $response-pipe",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Answer the requested comparison for both formats.",
+        "Close with the completed checklist and one short line reporting that it has no further step. Do not invent a release, task or owner."
+      ]
+    },
+    {
+      "id": "indirect-pilot-recap",
+      "kind": "indirect",
+      "prompt": "Give me a quick reminder for when I come back. The offline pilot build is ready. The tester's remaining checklist item P3 is to reconnect after editing a note offline and report whether exactly one copy is visible. The pilot checklist is at https://example.org/pilot#p3. Where did we leave off and what happens next?",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Identify the pilot build as ready and the field observation as outstanding.",
+        "Put the specific reconnect test, the observation the tester should report, and the P3 checklist link together. Avoid reopening build work."
+      ]
+    },
+    {
+      "id": "incomplete-next-milestone",
+      "kind": "incomplete",
+      "prompt": "Current context: The import demo ran on a sample file. No later milestone, owner, plan or destination was recorded. User: What's next for that?",
+      "expected_activation": "activate_if_context_supplies_subject",
+      "expected_behavior": [
+        "Resolve 'that' to the import demo, distinguish the completed sample run from the unknown next milestone, and identify the missing decision.",
+        "Preserve uncertainty about the larger project. Do not invent a pilot owner, plan link or completion claim."
+      ]
+    },
+    {
+      "id": "follow-up-chat-preference",
+      "kind": "follow_up",
+      "prompt": "Earlier in this chat I asked for a recap and next step at the end of each work reply. The last reply said the style guide was approved and C1 was next: draft two neutral alternatives to ‘Get started’ for a button that opens a booking form. C2 is the copy review at https://example.org/copy#c2 and it starts once C1 is drafted. My next message in this same chat: Continue with C1.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Use the plan already in this chat and write two usable alternatives as C1. The user can continue by step ID without repeating the brief or going to another conversation.",
+        "End with the copy checkpoint and the linked C2 review as the first action. Keep the preference scoped to this chat."
+      ]
+    },
+    {
+      "id": "boundary-project-audit",
+      "kind": "boundary",
+      "prompt": "Read the chats across this project, reconcile all active owners with their open pull requests, and prepare a full project status review.",
+      "expected_activation": "do_not_activate",
+      "expected_behavior": [
+        "Route the project-wide discovery and reconciliation request to an appropriate review workflow. No current-task formatting preference was supplied."
+      ]
+    },
+    {
+      "id": "negative-sequence-question",
+      "kind": "negative",
+      "prompt": "What comes next in the sequence 2, 4, 8, 16? Give the number.",
+      "expected_activation": "do_not_activate",
+      "expected_behavior": [
+        "Return 32 without adding a project recap or treating the arithmetic sequence as a work plan."
+      ]
+    },
+    {
+      "id": "edge-branching-route",
+      "kind": "edge",
+      "prompt": "Use $response-pipe on our rehearsal. The rehearsal environment is ready. I own M2, signing off a sample invoice. Finance can begin M3, reconciliation, only after that sign-off. Support can start M4, checking the help copy, immediately. The manifest gives https://example.org/rehearsal#m2, https://example.org/rehearsal#m3 and https://example.org/rehearsal#m4.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Identify the ready environment and put the user's M2 sign-off first, with the destination for taking that action.",
+        "Show M3 after M2 and M4 in parallel, retaining the actual owners, IDs and supplied destinations.",
+        "Close with a Start with line that identifies M2 and M4 as ready now. The numbered order must not make Support wait."
+      ]
+    },
+    {
+      "id": "edge-external-draft",
+      "kind": "edge",
+      "prompt": "Draft a two-sentence email telling our trial group that the preview is ready and asking them to try saving a note. I will send it after I approve the wording. Use $response-pipe on your reply.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Supply a copyable two-sentence draft for the trial group and keep the internal recap outside it.",
+        "Identify wording approval as the user's immediate action. Leave sending to the user and keep trial results unclaimed."
+      ]
+    },
+    {
+      "id": "edge-json-only",
+      "kind": "edge",
+      "prompt": "I asked for $response-pipe throughout this chat. For this reply return only a JSON object with the sole key passed and the value true.",
+      "expected_activation": "activate",
+      "expected_behavior": [
+        "Honor the exact output contract with a parseable JSON object containing only the requested key and boolean.",
+        "Omit Markdown fences, recap prose and extra JSON fields."
+      ]
+    }
+  ]
+}

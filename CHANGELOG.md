@@ -19,6 +19,12 @@ All notable changes to published plugins are recorded here. Versions follow sema
 - Routed multi-skill plugin evaluation results by declared packaged skill, retaining per-skill version and schema checks and rejecting unknown skill names.
 - Restored public-history validation after GitHub generated the PR #5 merge commit with a direct author email by documenting and exempting only that immutable object id; future merges must preserve noreply author metadata.
 
+## response-pipe 0.1.0 - Unreleased
+
+### Added
+
+- Standalone Productivity preview for continuing in the same chat. The ending shows where work stopped, where to find the relevant plan item, and which action comes next.
+
 ## skill-opportunity-review 0.1.0 - Unreleased
 
 ### Added

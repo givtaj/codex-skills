@@ -1,0 +1,37 @@
+{
+  "name": "response-pipe",
+  "version": "0.1.0",
+  "description": "Format a work reply so you can return to the same chat, see the last confirmed milestone, and continue with the next plan item.",
+  "author": {
+    "name": "givtaj",
+    "url": "https://github.com/givtaj"
+  },
+  "homepage": "https://github.com/givtaj/codex-skills/tree/main/plugins/response-pipe",
+  "repository": "https://github.com/givtaj/codex-skills",
+  "license": "MIT",
+  "keywords": [
+    "response-formatting",
+    "work-summary",
+    "next-steps",
+    "checklist"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Response Pipe",
+    "shortDescription": "See where work stopped and what to do next",
+    "longDescription": "Finish a reply with the last confirmed milestone, the next action, and a link to where it happens. Preserve the plan’s step IDs and show which actions depend on each other or can start together.",
+    "developerName": "givtaj",
+    "category": "Productivity",
+    "capabilities": [
+      "Read"
+    ],
+    "websiteURL": "https://github.com/givtaj/codex-skills/tree/main/plugins/response-pipe",
+    "privacyPolicyURL": "https://github.com/givtaj/codex-skills/blob/main/PRIVACY.md",
+    "defaultPrompt": [
+      "Show where we left off and which step to continue with in this chat.",
+      "Use this format at the end of every work reply in this chat."
+    ],
+    "brandColor": "#326A68",
+    "screenshots": []
+  }
+}

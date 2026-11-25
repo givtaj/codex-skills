@@ -37,3 +37,7 @@ codex plugin add loose-thread-finder@givtaj-skills
 ## Tempo Project Coordination
 
 [`tempo`](../plugins/tempo/) reviews project work across chats, refreshes comparisons, resumes selected work, and follows through on authorized handoffs. Version `0.1.0` is a preview with full host replay pending.
+
+## Response Pipe
+
+[`response-pipe`](../plugins/response-pipe/) ends a reply with the last confirmed milestone and the next step for continuing in the same chat. When several steps remain, it preserves the plan's identifiers and shows which action comes first, which can run in parallel, and who needs to act. Version `0.1.0` is a preview.

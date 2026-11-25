@@ -27,6 +27,7 @@ codex plugin add skill-opportunity-review@givtaj-skills
 codex plugin add skill-sync@givtaj-skills
 codex plugin add storage-retention-audit@givtaj-skills
 codex plugin add tempo@givtaj-skills
+codex plugin add response-pipe@givtaj-skills
 ```
 
 Start a new task after installation so the new skill is loaded. Invoke a skill explicitly by name, or let the host select it when the request matches its description.
@@ -45,6 +46,7 @@ Start a new task after installation so the new skill is loaded. Invoke a skill e
 | [`skill-sync`](./plugins/skill-sync/) | Developer tools | Preview `0.1.0` | Compares local skills with a selected GitHub repository and waits for exact confirmation before upload or installation. |
 | [`storage-retention-audit`](./plugins/storage-retention-audit/) | Developer tools · Project operations | Preview `0.1.0` | Audits storage and project worktrees, traces consumers, and proposes exact cleanup batches with recovery evidence. |
 | [`tempo`](./plugins/tempo/) | Productivity · Project operations | Preview `0.1.0` | Reviews project work across chats, refreshes comparisons, resumes selected work, and follows through on authorized handoffs. |
+| [`response-pipe`](./plugins/response-pipe/) | Productivity | Preview `0.1.0` | Ends replies with the current plan item and linked next steps so you can resume in the same chat. |
 
 The `tempo` plugin bundles `tempo`, `tempo-refresh-and-compare`, `tempo-resume`, and `tempo-follow-through`. The `storage-retention-audit` plugin bundles its namesake and `project-worktree-audit` so companion links resolve within each package.
 
@@ -125,6 +127,7 @@ codex plugin add skill-opportunity-review@givtaj-skills
 codex plugin add skill-sync@givtaj-skills
 codex plugin add storage-retention-audit@givtaj-skills
 codex plugin add tempo@givtaj-skills
+codex plugin add response-pipe@givtaj-skills
 ```
 
 ## License

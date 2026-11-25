@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "skill": "response-pipe",
+  "plugin_version": "0.1.0",
+  "date": "2026-11-25",
+  "scope": "structural",
+  "status": "passed",
+  "checks": [
+    "Skill-creator quick validation of the packaged skill.",
+    "Repository validation of the plugin, marketplace entry and evaluation schemas.",
+    "An isolated local marketplace installation reported version 0.1.0 installed and enabled. The installed package files matched the source."
+  ],
+  "behavioral_replay": {
+    "status": "pending",
+    "reason": "The complete catalog request set awaits replay and scoring against the installed public preview in fresh conversations."
+  }
+}
